@@ -79,7 +79,12 @@ def create_payment(order):
     # Expected shape: <response><pg_status>ok</pg_status>
     #   <pg_redirect_url>...</pg_redirect_url></response>
     # Re-check this parsing against a real response once you have access.
-    root = ET.fromstring(response.text)
+    #
+    # Parse response.content (raw bytes), not response.text — the XML
+    # prolog declares its own encoding (UTF-8), and letting ElementTree
+    # read that directly avoids requests mis-guessing the charset and
+    # mangling Cyrillic in pg_error_description/pg_description.
+    root = ET.fromstring(response.content)
     status = root.findtext("pg_status")
     if status != "ok":
         description = root.findtext("pg_error_description") or root.findtext(
