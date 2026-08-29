@@ -35,7 +35,7 @@ services:
     # by also mounting the static_volume / media_volume named volumes
     # declared below.
     ports:
-      - "8000:8000"
+      - "8029:8029"
 
 volumes:
   postgres_data:
