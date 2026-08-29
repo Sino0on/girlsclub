@@ -1,13 +1,26 @@
 """
 FreedomPay payment gateway adapter.
 
-This follows the "pg_" parameter / signature scheme that FreedomPay KZ's
-Merchant API documentation describes (the same family of protocol used by
-several CIS payment gateways: concatenate script_name + sorted param
-values + secret key, then hash). It is NOT fully verified against a live
-FreedomPay account — confirm the exact endpoint, parameter names, the
-callbacks' script_name, and the hashing algorithm against the actual
-docs/keys you receive, and adjust this file accordingly.
+Verified against the official docs at https://docs.freedompay.kz
+(Apidog-hosted; see "create-payment", "result-notify"):
+
+- Endpoint: POST https://api.freedompay.kz/g2g/payment_page/ as
+  multipart/form-data (use the matching host for other countries —
+  api.freedompay.uz / api.freedompay.kg).
+- Signature: concatenate with ";" — the calling script's name (the
+  fixed string "init_payment.php" for the init request, "result_url"
+  for the result-notify webhook — these are protocol-level names, not
+  derived from our own URLs), then every request field's value sorted
+  alphabetically by field name (pg_salt included), then the merchant
+  secret key. MD5 the result -> 32-char lowercase hex -> pg_sig.
+  Confirmed script_name example from the docs:
+    'init_payment.php;25;Order description;{merchant_id};23;{salt};{secret_key}'
+
+Still unverified: the check_url callback's exact script_name (guessed
+as "check_url" below, following the same naming convention as
+result_url — but the docs page for it didn't spell this out the way
+result-notify did). If a real CHECK URL callback's pg_sig doesn't
+match, that's the first thing to double check.
 
 FreedomPay's merchant cabinet (Настройки → Магазины) has three static
 callback URLs to configure per shop — paste these in as-is:
@@ -15,8 +28,8 @@ callback URLs to configure per shop — paste these in as-is:
   CHECK URL   -> https://<your-domain>/tickets/payment/check/
   RESULT URL  -> https://<your-domain>/tickets/payment/callback/
   SUCCESS URL -> https://<your-domain>/tickets/payment/success/
-  (there's usually a matching FAIL URL field too, if present)
-                 https://<your-domain>/tickets/payment/fail/
+  FAIL URL    -> https://<your-domain>/tickets/payment/fail/ (if a
+                 separate field exists for it)
 
 CHECK URL is called first, before any money moves, to confirm the order
 is real and payable. RESULT URL is the actual server-to-server payment
@@ -74,6 +87,9 @@ def build_init_params(order):
         "pg_failure_url": f"{base}{reverse('tickets:payment_fail')}",
         "pg_request_method": "POST",
         "pg_testing_mode": "0",
+        "pg_language": "ru",
+        "pg_user_contact_email": order.email,
+        "pg_user_phone": order.phone,
     }
     params["pg_sig"] = _make_signature(
         "init_payment.php", params, settings.FREEDOMPAY_SECRET_KEY
@@ -89,12 +105,16 @@ def create_payment(order):
     import requests
 
     params = build_init_params(order)
-    response = requests.post(settings.FREEDOMPAY_API_URL, data=params, timeout=15)
+    # The docs specify Content-Type: multipart/form-data for this
+    # endpoint — passing `files=` (with no actual filename) makes
+    # requests build a real multipart body instead of the default
+    # application/x-www-form-urlencoded that `data=` alone would send.
+    files = {key: (None, str(value)) for key, value in params.items()}
+    response = requests.post(settings.FREEDOMPAY_API_URL, files=files, timeout=15)
     response.raise_for_status()
 
     # Expected shape: <response><pg_status>ok</pg_status>
     #   <pg_redirect_url>...</pg_redirect_url></response>
-    # Re-check this parsing against a real response once you have access.
     #
     # Parse response.content (raw bytes), not response.text — the XML
     # prolog declares its own encoding (UTF-8), and letting ElementTree
@@ -114,9 +134,6 @@ def create_payment(order):
     return redirect_url
 
 
-# Guessed script_name values for the two inbound callbacks — FreedomPay's
-# own docs are the source of truth here, adjust if a real callback's
-# pg_sig doesn't match what verify_incoming_signature() computes.
 CHECK_SCRIPT_NAME = "check_url"
 RESULT_SCRIPT_NAME = "result_url"
 

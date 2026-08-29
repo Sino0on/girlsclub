@@ -80,9 +80,14 @@ def payment_callback(request):
     if not order:
         return _xml_ack(False, "Unknown order", freedompay.RESULT_SCRIPT_NAME)
 
-    if params.get("pg_result") == "1":
+    pg_result = params.get("pg_result")
+    if pg_result == "1":
         services.mark_order_paid(order, payment_id=params.get("pg_payment_id", ""))
         return _xml_ack(True, "Payment accepted", freedompay.RESULT_SCRIPT_NAME)
+    if pg_result == "2":
+        # Incomplete — FreedomPay may still call back again with a
+        # final result later, so don't mark the order failed yet.
+        return _xml_ack(True, "Acknowledged, awaiting final result", freedompay.RESULT_SCRIPT_NAME)
     services.mark_order_failed(order)
     return _xml_ack(True, "Payment failure acknowledged", freedompay.RESULT_SCRIPT_NAME)
 

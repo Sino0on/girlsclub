@@ -144,7 +144,7 @@ FREEDOMPAY_TEST_MODE = env_bool("FREEDOMPAY_TEST_MODE", True)
 FREEDOMPAY_MERCHANT_ID = os.environ.get("FREEDOMPAY_MERCHANT_ID", "")
 FREEDOMPAY_SECRET_KEY = os.environ.get("FREEDOMPAY_SECRET_KEY", "")
 FREEDOMPAY_API_URL = os.environ.get(
-    "FREEDOMPAY_API_URL", "https://api.freedompay.kz/init_payment.php"
+    "FREEDOMPAY_API_URL", "https://api.freedompay.kz/g2g/payment_page/"
 )
 
 # --- Email ---
