@@ -1,6 +1,6 @@
 Дорогие феи, эльфы и волшебные создания! 🧚🏻‍♀️
 
-Ваш билет на Fairy Tale Picnic оформлен.
+Ваш билет на FairyTale Picnic оформлен.
 
 Имя: {{ order.full_name }}
 Билетов: {{ order.quantity }}

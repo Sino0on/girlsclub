@@ -23,7 +23,7 @@ def generate_qr_code(order):
 
 
 def send_ticket_email(order):
-    subject = "Ваш билет на Fairy Tale Picnic"
+    subject = "Ваш билет на FairyTale Picnic"
     context = {"order": order}
     text_body = render_to_string("tickets/email/ticket_email.txt", context)
     html_body = render_to_string("tickets/email/ticket_email.html", context)
@@ -44,7 +44,7 @@ def send_ticket_email(order):
 
 
 def send_rejection_email(order):
-    subject = "Ваш билет на Fairy Tale Picnic аннулирован"
+    subject = "Ваш билет на FairyTale Picnic аннулирован"
     context = {"order": order}
     text_body = render_to_string("tickets/email/rejection_email.txt", context)
     html_body = render_to_string("tickets/email/rejection_email.html", context)
@@ -68,7 +68,7 @@ def notify_moderators(order):
         return
 
     caption = (
-        "🎟 Новый заказ билетов Fairy Tale Picnic\n\n"
+        "🎟 Новый заказ билетов FairyTale Picnic\n\n"
         f"ФИО: {order.full_name}\n"
         f"Email: {order.email}\n"
         f"Телефон: {order.phone}\n"

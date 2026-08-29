@@ -79,7 +79,7 @@ def build_init_params(order):
         "pg_order_id": str(order.qr_token),
         "pg_amount": str(order.amount),
         "pg_currency": "KGS",
-        "pg_description": f"Билет Fairy Tale Picnic — {order.full_name}",
+        "pg_description": f"Билет FairyTale Picnic — {order.full_name}",
         "pg_salt": _random_salt(),
         "pg_check_url": f"{base}{reverse('tickets:payment_check')}",
         "pg_result_url": f"{base}{reverse('tickets:payment_callback')}",
