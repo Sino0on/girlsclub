@@ -9,8 +9,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from . import freedompay, services
-from .forms import OrderForm
-from .models import Order
+from .forms import OrderForm, ReceiptUploadForm
+from .models import Order, PaymentInstructions
 
 
 def buy(request):
@@ -18,17 +18,58 @@ def buy(request):
         form = OrderForm(request.POST)
         if form.is_valid():
             order = form.save(commit=False)
-            order.amount = settings.TICKET_PRICE_KGS
+            order.amount = order.quantity * settings.TICKET_PRICE_KGS
             order.save()
-            try:
-                redirect_url = freedompay.create_payment(order)
-            except freedompay.FreedomPayError as exc:
-                messages.error(request, f"Не удалось создать платёж: {exc}")
-                return render(request, "tickets/buy.html", {"form": form})
-            return redirect(redirect_url)
+            return redirect("tickets:upload_receipt", token=order.qr_token)
     else:
         form = OrderForm()
     return render(request, "tickets/buy.html", {"form": form})
+
+
+def upload_receipt(request, token):
+    """Step 2: show the bank-transfer QR + amount, collect the buyer's
+    receipt screenshot/file. The ticket is issued the moment this is
+    submitted — a moderator can only void it afterwards, not block it."""
+    order = get_object_or_404(Order, qr_token=token)
+
+    if order.status != Order.STATUS_AWAITING_RECEIPT:
+        # Already submitted (or from another flow) — just show the ticket.
+        return render(request, "tickets/success.html", {"order": order})
+
+    if request.method == "POST":
+        form = ReceiptUploadForm(request.POST, request.FILES, instance=order)
+        if form.is_valid():
+            form.save()
+            services.issue_ticket(order)
+            return render(request, "tickets/success.html", {"order": order})
+    else:
+        form = ReceiptUploadForm(instance=order)
+
+    instructions = PaymentInstructions.objects.filter(is_active=True).first()
+    return render(
+        request,
+        "tickets/upload_receipt.html",
+        {"form": form, "order": order, "instructions": instructions},
+    )
+
+
+@staff_member_required
+def verify(request, token):
+    """Door-staff view: scan the QR, see the ticket, mark it used."""
+    order = get_object_or_404(Order, qr_token=token)
+
+    if request.method == "POST" and order.is_valid_ticket and not order.is_checked_in:
+        order.checked_in_at = timezone.now()
+        order.save(update_fields=["checked_in_at"])
+        return redirect("tickets:verify", token=order.qr_token)
+
+    return render(request, "tickets/verify.html", {"order": order})
+
+
+# =====================================================================
+# FreedomPay flow — paused for now, kept working in case it comes back.
+# Nothing above calls into any of this.
+# =====================================================================
 
 
 def _find_order(request):
@@ -126,16 +167,3 @@ def fake_gateway(request, token):
         return redirect(f"{target}?pg_order_id={order.qr_token}")
 
     return render(request, "tickets/fake_gateway.html", {"order": order})
-
-
-@staff_member_required
-def verify(request, token):
-    """Door-staff view: scan the QR, see the ticket, mark it used."""
-    order = get_object_or_404(Order, qr_token=token)
-
-    if request.method == "POST" and order.is_paid and not order.is_checked_in:
-        order.checked_in_at = timezone.now()
-        order.save(update_fields=["checked_in_at"])
-        return redirect("tickets:verify", token=order.qr_token)
-
-    return render(request, "tickets/verify.html", {"order": order})

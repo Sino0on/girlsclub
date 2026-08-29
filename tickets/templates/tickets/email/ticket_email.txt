@@ -3,6 +3,7 @@
 Ваш билет на Fairy Tale Picnic оформлен.
 
 Имя: {{ order.full_name }}
+Билетов: {{ order.quantity }}
 Дата: 13 сентября 2026
 Место: Event Garden, Ала-Арча, Бишкек
 

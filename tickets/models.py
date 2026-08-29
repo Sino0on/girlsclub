@@ -1,24 +1,50 @@
 import uuid
 
 from django.conf import settings
+from django.core.validators import FileExtensionValidator
 from django.db import models
+
+
+def receipt_upload_path(instance, filename):
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "bin"
+    return f"receipts/{uuid.uuid4()}.{ext}"
 
 
 class Order(models.Model):
     """One ticket purchase.
 
-    Created when someone submits the checkout form (status=pending),
-    then flipped to paid/failed once FreedomPay confirms the payment
-    (or, in test mode, once the fake gateway page is used).
+    Current flow (manual bank transfer): created with status
+    "awaiting_receipt" when the buyer submits the checkout form, moves
+    to "pending_review" the moment they upload a transfer receipt — the
+    ticket/QR is issued immediately at that point, no need to wait for
+    a moderator. A moderator then just confirms or rejects it in the
+    Telegram group; rejecting voids the ticket and emails the buyer.
+
+    The STATUS_PENDING / STATUS_PAID / STATUS_FAILED values and
+    payment_id/paid_at fields are left over from the (currently paused)
+    FreedomPay integration in freedompay.py / views.fake_gateway — kept
+    working in case that gets switched back on later.
     """
 
+    # --- FreedomPay flow (paused, kept working) ---
     STATUS_PENDING = "pending"
     STATUS_PAID = "paid"
     STATUS_FAILED = "failed"
+
+    # --- Manual bank-transfer flow (current) ---
+    STATUS_AWAITING_RECEIPT = "awaiting_receipt"
+    STATUS_PENDING_REVIEW = "pending_review"
+    STATUS_APPROVED = "approved"
+    STATUS_REJECTED = "rejected"
+
     STATUS_CHOICES = [
-        (STATUS_PENDING, "Ожидает оплаты"),
-        (STATUS_PAID, "Оплачен"),
-        (STATUS_FAILED, "Не оплачен / отменён"),
+        (STATUS_PENDING, "Ожидает оплаты (FreedomPay)"),
+        (STATUS_PAID, "Оплачен (FreedomPay)"),
+        (STATUS_FAILED, "Не оплачен / отменён (FreedomPay)"),
+        (STATUS_AWAITING_RECEIPT, "Ожидает чек оплаты"),
+        (STATUS_PENDING_REVIEW, "Билет выдан, ждёт проверки модератором"),
+        (STATUS_APPROVED, "Подтверждён модератором"),
+        (STATUS_REJECTED, "Отклонён, билет аннулирован"),
     ]
 
     full_name = models.CharField("ФИО", max_length=200)
@@ -26,9 +52,23 @@ class Order(models.Model):
     phone = models.CharField("Телефон", max_length=32)
     rules_agreed = models.BooleanField("Согласие с правилами", default=False)
 
+    quantity = models.PositiveIntegerField("Количество билетов", default=1)
     amount = models.DecimalField("Сумма, сом", max_digits=10, decimal_places=2)
     status = models.CharField(
-        "Статус", max_length=16, choices=STATUS_CHOICES, default=STATUS_PENDING
+        "Статус",
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_AWAITING_RECEIPT,
+    )
+
+    receipt = models.FileField(
+        "Чек об оплате",
+        upload_to=receipt_upload_path,
+        blank=True,
+        null=True,
+        validators=[
+            FileExtensionValidator(["jpg", "jpeg", "png", "heic", "pdf", "webp"])
+        ],
     )
 
     qr_token = models.UUIDField(
@@ -41,12 +81,24 @@ class Order(models.Model):
     payment_id = models.CharField(
         "ID платежа FreedomPay", max_length=100, blank=True
     )
-    email_sent_at = models.DateTimeField("Письмо отправлено", blank=True, null=True)
 
+    telegram_chat_id = models.CharField(
+        "Telegram chat ID", max_length=32, blank=True
+    )
+    telegram_message_id = models.BigIntegerField(
+        "Telegram message ID", blank=True, null=True
+    )
+
+    email_sent_at = models.DateTimeField("Письмо с билетом отправлено", blank=True, null=True)
+    rejection_email_sent_at = models.DateTimeField(
+        "Письмо об аннулировании отправлено", blank=True, null=True
+    )
     checked_in_at = models.DateTimeField("Отмечен на входе", blank=True, null=True)
 
     created_at = models.DateTimeField("Создан", auto_now_add=True)
-    paid_at = models.DateTimeField("Оплачен", blank=True, null=True)
+    submitted_at = models.DateTimeField("Чек загружен", blank=True, null=True)
+    decided_at = models.DateTimeField("Решение модератора", blank=True, null=True)
+    paid_at = models.DateTimeField("Оплачен (FreedomPay)", blank=True, null=True)
 
     class Meta:
         verbose_name = "Заказ"
@@ -56,9 +108,24 @@ class Order(models.Model):
     def __str__(self):
         return f"{self.full_name} — {self.get_status_display()}"
 
+    # --- FreedomPay flow helpers (paused) ---
     @property
     def is_paid(self):
         return self.status == self.STATUS_PAID
+
+    # --- Manual bank-transfer flow helpers ---
+    @property
+    def is_valid_ticket(self):
+        """Ticket has been issued and hasn't been voided by a moderator."""
+        return self.status in (
+            self.STATUS_PAID,
+            self.STATUS_PENDING_REVIEW,
+            self.STATUS_APPROVED,
+        )
+
+    @property
+    def is_rejected(self):
+        return self.status in (self.STATUS_REJECTED, self.STATUS_FAILED)
 
     @property
     def is_checked_in(self):
@@ -66,3 +133,24 @@ class Order(models.Model):
 
     def get_verify_url(self):
         return f"{settings.SITE_URL}/tickets/verify/{self.qr_token}/"
+
+
+class PaymentInstructions(models.Model):
+    """Bank-transfer QR + instructions shown on the "upload your receipt"
+    page. Admin-managed; the most recently updated active row is used."""
+
+    qr_image = models.ImageField("QR-код для перевода", upload_to="payment_qr/")
+    note = models.TextField(
+        "Реквизиты / пояснение",
+        blank=True,
+        help_text="Например: банк, получатель, номер счёта — что покупатель увидит рядом с QR",
+    )
+    is_active = models.BooleanField("Активна", default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Реквизиты для оплаты"
+        verbose_name_plural = "Реквизиты для оплаты"
+
+    def __str__(self):
+        return f"Реквизиты ({'активны' if self.is_active else 'неактивны'})"

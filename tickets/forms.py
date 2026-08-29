@@ -4,6 +4,13 @@ from .models import Order
 
 
 class OrderForm(forms.ModelForm):
+    quantity = forms.IntegerField(
+        label="Количество билетов",
+        min_value=1,
+        max_value=10,
+        initial=1,
+        widget=forms.NumberInput(attrs={"inputmode": "numeric"}),
+    )
     rules_agreed = forms.BooleanField(
         label="Я ознакомлен(а) с правилами мероприятия",
         required=True,
@@ -13,7 +20,7 @@ class OrderForm(forms.ModelForm):
 
     class Meta:
         model = Order
-        fields = ["full_name", "email", "phone", "rules_agreed"]
+        fields = ["full_name", "email", "phone", "quantity", "rules_agreed"]
         labels = {
             "full_name": "ФИО",
             "email": "Email",
@@ -24,3 +31,15 @@ class OrderForm(forms.ModelForm):
             "email": forms.EmailInput(attrs={"placeholder": "you@example.com"}),
             "phone": forms.TextInput(attrs={"placeholder": "+996 700 000 000"}),
         }
+
+
+class ReceiptUploadForm(forms.ModelForm):
+    receipt = forms.FileField(
+        label="Скриншот или файл чека",
+        required=True,
+        error_messages={"required": "Прикрепите скриншот или файл с чеком об оплате."},
+    )
+
+    class Meta:
+        model = Order
+        fields = ["receipt"]

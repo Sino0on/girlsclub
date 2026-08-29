@@ -6,6 +6,9 @@ app_name = "tickets"
 
 urlpatterns = [
     path("buy/", views.buy, name="buy"),
+    path("upload/<uuid:token>/", views.upload_receipt, name="upload_receipt"),
+    path("verify/<uuid:token>/", views.verify, name="verify"),
+    # --- FreedomPay flow (paused) ---
     # These three are static — paste them as-is into the FreedomPay
     # merchant cabinet (Настройки → Магазины → CHECK URL / RESULT URL /
     # SUCCESS URL). FreedomPay appends pg_order_id (and friends) as
@@ -15,5 +18,4 @@ urlpatterns = [
     path("payment/success/", views.payment_success, name="payment_success"),
     path("payment/fail/", views.payment_fail, name="payment_fail"),
     path("gateway/<uuid:token>/", views.fake_gateway, name="fake_gateway"),
-    path("verify/<uuid:token>/", views.verify, name="verify"),
 ]

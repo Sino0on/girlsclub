@@ -962,6 +962,26 @@ section{ scroll-margin-top: 0; }
   outline: none;
   border-color: var(--strawberry);
 }
+.checkout-form__field input[type="file"]{
+  padding: .55em .6em;
+  font-size: .88rem;
+}
+.checkout-form__field input[type="file"]::file-selector-button{
+  margin-right: .8em;
+  padding: .5em 1em;
+  border: none;
+  border-radius: 999px;
+  background: var(--matcha);
+  color: var(--warm-white);
+  font-family: var(--caps);
+  font-size: .72rem;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.checkout-form__field input[type="file"]::file-selector-button:hover{
+  background: var(--dark-olive);
+}
 .checkout-form__error{
   margin: .35em 0 0;
   color: var(--strawberry);

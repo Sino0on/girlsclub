@@ -159,3 +159,10 @@ EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
 DEFAULT_FROM_EMAIL = os.environ.get(
     "DEFAULT_FROM_EMAIL", "Fairy Tale Picnic <no-reply@example.com>"
 )
+
+# --- Telegram moderator bot ---
+# The bot token identifies the bot; the chat ID is the moderator GROUP
+# it should post receipts to (add the bot to that group first — group
+# chat IDs are negative numbers, e.g. -1001234567890).
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_MODERATOR_CHAT_ID = os.environ.get("TELEGRAM_MODERATOR_CHAT_ID", "")

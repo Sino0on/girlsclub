@@ -37,6 +37,21 @@ services:
     ports:
       - "8029:8029"
 
+  bot:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: db
+    depends_on:
+      db:
+        condition: service_healthy
+    # Overrides the Dockerfile's ENTRYPOINT (which runs migrate +
+    # collectstatic + gunicorn) — this service just needs the aiogram
+    # moderator bot, long-polling Telegram, no HTTP server of its own.
+    entrypoint: ["python", "manage.py", "run_telegram_bot"]
+
 volumes:
   postgres_data:
   static_volume:

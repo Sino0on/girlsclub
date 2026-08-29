@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Оплата переводом — Fairy Tale Picnic{% endblock %}
+{% block body_class %}checkout-page{% endblock %}
+
+{% block body %}
+<main class="checkout">
+  <div class="checkout__card">
+    <div class="checkout__divider" aria-hidden="true">✦</div>
+    <h1 class="checkout__title">Оплата переводом</h1>
+    <p class="checkout__subtitle">
+      К оплате: {{ order.amount }} сом · билетов: {{ order.quantity }}
+    </p>
+
+    {% if instructions.qr_image %}
+      <div class="ticket-qr">
+        <img src="{{ instructions.qr_image.url }}" alt="QR-код для перевода">
+      </div>
+    {% endif %}
+    {% if instructions.note %}
+      <p class="checkout__note">{{ instructions.note|linebreaksbr }}</p>
+    {% endif %}
+
+    <p class="checkout__note">
+      Переведите точную сумму — <strong>{{ order.amount }} сом</strong> — по QR-коду
+      выше, затем прикрепите скриншот или файл чека и нажмите «Отправить».
+      Билет придёт сразу после отправки.
+    </p>
+
+    {% if messages %}
+      {% for message in messages %}
+        <p class="checkout__error">{{ message }}</p>
+      {% endfor %}
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" class="checkout-form">
+      {% csrf_token %}
+      <div class="checkout-form__field">
+        <label for="{{ form.receipt.id_for_label }}">{{ form.receipt.label }}</label>
+        {{ form.receipt }}
+        {% if form.receipt.errors %}
+          <p class="checkout-form__error">{{ form.receipt.errors|striptags }}</p>
+        {% endif %}
+      </div>
+
+      <button type="submit" class="buy-button checkout-form__submit">
+        <span>Отправить</span>
+      </button>
+    </form>
+
+    <a href="{% url 'event:home' %}" class="checkout__back">← Вернуться на страницу события</a>
+  </div>
+</main>
+{% endblock %}
