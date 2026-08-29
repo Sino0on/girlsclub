@@ -115,6 +115,18 @@ TIME_ZONE = "Asia/Bishkek"
 USE_I18N = True
 USE_TZ = True
 
+if not DEBUG:
+    # Only meaningful once the site is actually served over HTTPS (via
+    # nginx, which must set X-Forwarded-Proto: https — see
+    # SECURE_PROXY_SSL_HEADER above — or SECURE_SSL_REDIRECT below will
+    # redirect-loop). HSTS is deliberately left off until HTTPS has been
+    # confirmed solid for a while — enabling it prematurely can lock
+    # browsers out of the site over HTTP for a long time if something
+    # about the certificate/proxy breaks.
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
