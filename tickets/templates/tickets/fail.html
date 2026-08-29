@@ -9,7 +9,7 @@
     <div class="checkout__divider" aria-hidden="true">✦</div>
     <h1 class="checkout__title">Оплата не прошла</h1>
     <p class="checkout__subtitle">
-      Платёж для {{ order.full_name }} не был завершён — деньги не списаны.
+      {% if order %}Платёж для {{ order.full_name }} не был завершён{% else %}Платёж не был завершён{% endif %} — деньги не списаны.
     </p>
     <a href="{% url 'tickets:buy' %}" class="buy-button checkout-form__submit"><span>Попробовать снова</span></a>
     <a href="{% url 'event:home' %}" class="checkout__back">← Вернуться на страницу события</a>

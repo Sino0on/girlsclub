@@ -4,10 +4,25 @@ FreedomPay payment gateway adapter.
 This follows the "pg_" parameter / signature scheme that FreedomPay KZ's
 Merchant API documentation describes (the same family of protocol used by
 several CIS payment gateways: concatenate script_name + sorted param
-values + secret key, then hash). It is NOT verified against a live
+values + secret key, then hash). It is NOT fully verified against a live
 FreedomPay account — confirm the exact endpoint, parameter names, the
-callback's script_name, and the hashing algorithm against the actual
+callbacks' script_name, and the hashing algorithm against the actual
 docs/keys you receive, and adjust this file accordingly.
+
+FreedomPay's merchant cabinet (Настройки → Магазины) has three static
+callback URLs to configure per shop — paste these in as-is:
+
+  CHECK URL   -> https://<your-domain>/tickets/payment/check/
+  RESULT URL  -> https://<your-domain>/tickets/payment/callback/
+  SUCCESS URL -> https://<your-domain>/tickets/payment/success/
+  (there's usually a matching FAIL URL field too, if present)
+                 https://<your-domain>/tickets/payment/fail/
+
+CHECK URL is called first, before any money moves, to confirm the order
+is real and payable. RESULT URL is the actual server-to-server payment
+notification (the one that should be trusted to mark an order paid).
+SUCCESS/FAIL URL are just where the buyer's browser gets redirected —
+never trust them alone to confirm payment.
 
 Until real credentials are configured (FREEDOMPAY_MERCHANT_ID /
 FREEDOMPAY_SECRET_KEY in .env) — or while FREEDOMPAY_TEST_MODE=True —
@@ -53,9 +68,10 @@ def build_init_params(order):
         "pg_currency": "KGS",
         "pg_description": f"Билет Fairy Tale Picnic — {order.full_name}",
         "pg_salt": _random_salt(),
+        "pg_check_url": f"{base}{reverse('tickets:payment_check')}",
         "pg_result_url": f"{base}{reverse('tickets:payment_callback')}",
-        "pg_success_url": f"{base}{reverse('tickets:payment_success', args=[order.qr_token])}",
-        "pg_failure_url": f"{base}{reverse('tickets:payment_fail', args=[order.qr_token])}",
+        "pg_success_url": f"{base}{reverse('tickets:payment_success')}",
+        "pg_failure_url": f"{base}{reverse('tickets:payment_fail')}",
         "pg_request_method": "POST",
         "pg_testing_mode": "0",
     }
@@ -98,24 +114,31 @@ def create_payment(order):
     return redirect_url
 
 
-def verify_callback_signature(params):
-    """Verify the signature on an incoming result_url (webhook) callback."""
+# Guessed script_name values for the two inbound callbacks — FreedomPay's
+# own docs are the source of truth here, adjust if a real callback's
+# pg_sig doesn't match what verify_incoming_signature() computes.
+CHECK_SCRIPT_NAME = "check_url"
+RESULT_SCRIPT_NAME = "result_url"
+
+
+def verify_incoming_signature(params, script_name):
+    """Verify the pg_sig on an incoming check_url/result_url callback."""
     if not is_configured():
         return False
     received_sig = params.get("pg_sig", "")
-    expected_sig = _make_signature("result_url", params, settings.FREEDOMPAY_SECRET_KEY)
+    expected_sig = _make_signature(script_name, params, settings.FREEDOMPAY_SECRET_KEY)
     return received_sig == expected_sig
 
 
-def build_callback_ack(success, description, secret_key):
-    """The XML acknowledgement FreedomPay expects back from result_url."""
+def build_ack(success, description, secret_key, script_name):
+    """The XML acknowledgement FreedomPay expects back from check_url/result_url."""
     salt = _random_salt()
     ack_params = {
         "pg_status": "ok" if success else "error",
         "pg_description": description,
         "pg_salt": salt,
     }
-    sig = _make_signature("result_url", ack_params, secret_key)
+    sig = _make_signature(script_name, ack_params, secret_key)
     return (
         '<?xml version="1.0" encoding="utf-8"?>'
         "<response>"
