@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Оформление билета — Fairy Tale Picnic{% endblock %}
+
+{% block body_class %}checkout-page{% endblock %}
+
+{% block body %}
+<main class="checkout">
+  <div class="checkout__card">
+    <div class="checkout__divider" aria-hidden="true">✦</div>
+    <h1 class="checkout__title">Fairy Tale Picnic</h1>
+    <p class="checkout__subtitle">Оформление билета · {{ TICKET_PRICE_KGS }} сом</p>
+
+    {% if messages %}
+      {% for message in messages %}
+        <p class="checkout__error">{{ message }}</p>
+      {% endfor %}
+    {% endif %}
+
+    <form method="post" class="checkout-form" novalidate>
+      {% csrf_token %}
+
+      {% for field in form %}
+        {% if field.name != "rules_agreed" %}
+        <div class="checkout-form__field">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}
+            <p class="checkout-form__error">{{ field.errors|striptags }}</p>
+          {% endif %}
+        </div>
+        {% endif %}
+      {% endfor %}
+
+      <label class="agree checkout-form__agree">
+        {{ form.rules_agreed }}
+        <span class="agree__box" aria-hidden="true"></span>
+        <span class="agree__label">
+          Я ознакомлен(а) с
+          <button type="button" id="rules-link" class="agree__link">правилами мероприятия</button>
+        </span>
+      </label>
+      {% if form.rules_agreed.errors %}
+        <p class="checkout-form__error">{{ form.rules_agreed.errors|striptags }}</p>
+      {% endif %}
+
+      <button type="submit" class="buy-button checkout-form__submit">
+        <span>Перейти к оплате</span>
+      </button>
+    </form>
+
+    <a href="{% url 'event:home' %}" class="checkout__back">← Вернуться на страницу события</a>
+  </div>
+</main>
+
+<!-- RULES MODAL (same as on the home page) -->
+<div class="modal" id="rules-modal" aria-hidden="true">
+  <div class="modal__overlay" id="rules-overlay"></div>
+  <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="rules-title">
+    <svg class="modal__flourish" viewBox="0 0 200 40" aria-hidden="true">
+      <path d="M0 20 C 40 0, 70 40, 100 20 C 130 0, 160 40, 200 20"/>
+    </svg>
+    <button type="button" class="modal__close" id="rules-close" aria-label="Закрыть">✕</button>
+    <h2 id="rules-title" class="modal__title">Правила мероприятия</h2>
+    <div class="modal__body">
+      <p>Чтобы сказка была доброй ко всем, просим гостей Fairy Tale Picnic бережно отнестись к нескольким простым правилам:</p>
+      <ul>
+        <li>Билет именной и не подлежит передаче третьим лицам без согласования с организаторами.</li>
+        <li>Вход на территорию Event Garden — по электронному билету и предъявлению QR-кода из письма.</li>
+        <li>Просим бережно относиться к саду, растениям и декору — это общая волшебная территория.</li>
+        <li>Возрастные ограничения и правила площадки уточняйте у организаторов.</li>
+        <li>Организаторы вправе отказать в проходе при отсутствии билета или нарушении правил площадки.</li>
+        <li>Билеты, приобретённые на мероприятие, возврату и обмену не подлежат, если иное не согласовано с организаторами.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/checkout.js' %}" defer></script>
+{% endblock %}

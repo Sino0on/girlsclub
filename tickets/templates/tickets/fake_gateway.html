@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Тестовая оплата — FreedomPay (sandbox){% endblock %}
+{% block body_class %}checkout-page{% endblock %}
+
+{% block body %}
+<main class="checkout">
+  <div class="checkout__card">
+    <p class="checkout__badge">Тестовый режим FreedomPay</p>
+    <div class="checkout__divider" aria-hidden="true">✦</div>
+    <h1 class="checkout__title">Оплата билета</h1>
+    <p class="checkout__subtitle">{{ order.full_name }} · {{ order.amount }} сом</p>
+    <p class="checkout__note">
+      Это временная заглушка вместо реальной страницы FreedomPay — она
+      исчезнет сама, как только в .env появятся боевые
+      FREEDOMPAY_MERCHANT_ID / FREEDOMPAY_SECRET_KEY (и FREEDOMPAY_TEST_MODE=False).
+    </p>
+
+    <form method="post" class="checkout-form">
+      {% csrf_token %}
+      <button type="submit" name="action" value="pay" class="buy-button checkout-form__submit">
+        <span>Оплатить успешно</span>
+      </button>
+      <button type="submit" name="action" value="fail" class="checkout__back checkout__back--button">
+        Отменить оплату
+      </button>
+    </form>
+  </div>
+</main>
+{% endblock %}

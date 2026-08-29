@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-girlsclub}
+      POSTGRES_USER: ${POSTGRES_USER:-girlsclub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-girlsclub}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: db
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    # No nginx in this compose file (added separately) — nginx should
+    # reverse-proxy to this container on port 8000, and can either proxy
+    # /static/ + /media/ through to Django too, or serve them directly
+    # by also mounting the static_volume / media_volume named volumes
+    # declared below.
+    ports:
+      - "8000:8000"
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
