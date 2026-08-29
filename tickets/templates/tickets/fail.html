@@ -13,6 +13,8 @@
     </p>
     <a href="{% url 'tickets:buy' %}" class="buy-button checkout-form__submit"><span>Попробовать снова</span></a>
     <a href="{% url 'event:home' %}" class="checkout__back">← Вернуться на страницу события</a>
+
+    {% include "tickets/_contact_help.html" %}
   </div>
 </main>
 {% endblock %}
