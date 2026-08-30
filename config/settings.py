@@ -139,15 +139,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # --- Event / ticket config ---
 TICKET_PRICE_KGS = int(os.environ.get("TICKET_PRICE_KGS", "2000"))
 
-# --- Contact numbers (WhatsApp) ---
-CONTACT_PHONES = [
-    p.strip()
-    for p in os.environ.get(
-        "CONTACT_PHONES", "+996706108061,+996500669172"
-    ).split(",")
-    if p.strip()
-]
-
 # --- FreedomPay ---
 FREEDOMPAY_TEST_MODE = env_bool("FREEDOMPAY_TEST_MODE", True)
 FREEDOMPAY_MERCHANT_ID = os.environ.get("FREEDOMPAY_MERCHANT_ID", "")
