@@ -8,6 +8,8 @@ urlpatterns = [
     path("buy/", views.buy, name="buy"),
     path("upload/<uuid:token>/", views.upload_receipt, name="upload_receipt"),
     path("verify/<uuid:token>/", views.verify, name="verify"),
+    path("scanner/", views.scanner, name="scanner"),
+    path("scan/<uuid:token>/", views.scan_api, name="scan_api"),
     # --- FreedomPay flow (paused) ---
     # These three are static — paste them as-is into the FreedomPay
     # merchant cabinet (Настройки → Магазины → CHECK URL / RESULT URL /

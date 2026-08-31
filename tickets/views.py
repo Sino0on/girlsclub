@@ -1,10 +1,9 @@
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
@@ -55,15 +54,45 @@ def upload_receipt(request, token):
 
 @staff_member_required
 def verify(request, token):
-    """Door-staff view: scan the QR, see the ticket, mark it used."""
+    """Door-staff view: open the QR's link directly (e.g. via the phone's
+    own camera app) to see the ticket and mark it used by hand. The
+    camera *scanner* page (below) is the faster way to do this all day —
+    this page still works standalone as a fallback / for spot checks."""
     order = get_object_or_404(Order, qr_token=token)
 
-    if request.method == "POST" and order.is_valid_ticket and not order.is_checked_in:
-        order.checked_in_at = timezone.now()
-        order.save(update_fields=["checked_in_at"])
+    if request.method == "POST":
+        services.try_check_in(order)
         return redirect("tickets:verify", token=order.qr_token)
 
     return render(request, "tickets/verify.html", {"order": order})
+
+
+@staff_member_required
+def scanner(request):
+    """Camera-based scanning UI: point a phone's browser here (no app
+    install), scan each guest's QR in turn, get an instant green/red."""
+    return render(request, "tickets/scanner.html")
+
+
+@staff_member_required
+@require_POST
+def scan_api(request, token):
+    """JSON endpoint the scanner page calls after decoding each QR.
+    Same green/red decision as `verify`, just machine-readable."""
+    order = Order.objects.filter(qr_token=token).first()
+    if not order:
+        return JsonResponse({"ok": False, "reason": "not_found", "message": "Билет не найден"})
+
+    ok, reason, message = services.try_check_in(order)
+    return JsonResponse(
+        {
+            "ok": ok,
+            "reason": reason,
+            "message": message,
+            "full_name": order.full_name,
+            "quantity": order.quantity,
+        }
+    )
 
 
 # =====================================================================

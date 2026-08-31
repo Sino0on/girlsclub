@@ -161,6 +161,32 @@ def reject_order(order_id):
     send_rejection_email(order)
 
 
+def try_check_in(order):
+    """Attempt to check a ticket in at the door. Used by both the
+    manual /tickets/verify/ page and the camera scanner's JSON API —
+    the single place that decides green vs. red.
+
+    Returns (ok, reason, message):
+      ok=True,  reason="ok"          -> green light, just checked in
+      ok=False, reason="used"        -> red, already checked in before
+      ok=False, reason="rejected"    -> red, ticket was voided
+      ok=False, reason="not_issued"  -> red, no valid ticket on this order
+    """
+    if order.is_rejected:
+        return False, "rejected", "Билет аннулирован"
+
+    if not order.is_valid_ticket:
+        return False, "not_issued", "Билет ещё не оформлен"
+
+    if order.is_checked_in:
+        when = timezone.localtime(order.checked_in_at).strftime("%H:%M")
+        return False, "used", f"Уже использован сегодня в {when}"
+
+    order.checked_in_at = timezone.now()
+    order.save(update_fields=["checked_in_at"])
+    return True, "ok", "Билет действителен"
+
+
 # --- FreedomPay flow (paused, kept working) ---
 
 
