@@ -55,9 +55,10 @@ section{ scroll-margin-top: 0; }
 .hero__world{ position: absolute; inset: 0; z-index: 0; }
 
 .hero__photo{
+  /* background-image is set inline in home.html via {% static %} —
+     the real static/img path isn't known relative to this file */
   position: absolute;
   inset: -2%;
-  background-image: url("../assets/img/gate-bg.jpg");
   background-size: cover;
   background-position: center 38%;
   filter: saturate(.82) brightness(.56) contrast(1.04);
@@ -185,9 +186,9 @@ section{ scroll-margin-top: 0; }
 .hdoor--right{ transform-origin: right center; transform: translateX(0) rotateY(0); }
 
 .hdoor__texture{
+  /* background-image is set inline in home.html via {% static %} */
   position: absolute;
   inset: -3%;
-  background-image: url("../assets/img/door-texture.jpg");
   background-size: cover;
   background-position: center;
   filter: brightness(.42) saturate(.7);
@@ -1158,19 +1159,7 @@ body.scanner-page{ background: #000; overscroll-behavior: none; }
   z-index: 5;
   padding: 2.2em 1.4em calc(1.6em + env(safe-area-inset-bottom));
   text-align: center;
-  transition: background-color .2s ease;
-}
-.scanner__status--idle{
   background: linear-gradient(0deg, rgba(0,0,0,.88), rgba(0,0,0,0));
-}
-.scanner__status--busy{
-  background: rgba(79,91,50,.92);
-}
-.scanner__status--ok{
-  background: rgba(34,150,80,.94);
-}
-.scanner__status--error{
-  background: rgba(196,44,44,.94);
 }
 .scanner__status-text{
   margin: 0;
@@ -1179,10 +1168,80 @@ body.scanner-page{ background: #000; overscroll-behavior: none; }
   letter-spacing: .02em;
   font-size: .95rem;
 }
-.scanner__status--ok .scanner__status-text,
-.scanner__status--error .scanner__status-text{
-  font-size: 1.2rem;
+
+/* Full-screen result flash — shown between scans, impossible to miss */
+.scanner__result{
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .5em;
+  padding: 2em;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease;
+}
+.scanner__result.is-visible{ opacity: 1; }
+.scanner__result--busy{ background: rgba(79,91,50,.97); }
+.scanner__result--ok{ background: rgba(30,150,80,.97); }
+.scanner__result--error{ background: rgba(196,44,44,.97); }
+
+.scanner__result-icon{
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: .4em;
+  animation: scanner-pop .3s ease;
+}
+.scanner__result-icon svg{
+  width: 56px; height: 56px;
+  fill: none;
+  stroke: var(--warm-white);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.scanner__spinner{
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: 4px solid rgba(255,255,255,.3);
+  border-top-color: var(--warm-white);
+  animation: scanner-spin .7s linear infinite;
+}
+@keyframes scanner-spin{ to{ transform: rotate(360deg); } }
+@keyframes scanner-pop{
+  0%{ transform: scale(.4); opacity: 0; }
+  65%{ transform: scale(1.1); opacity: 1; }
+  100%{ transform: scale(1); }
+}
+
+.scanner__result-title{
+  margin: 0;
+  color: var(--warm-white);
+  font-family: var(--caps);
   font-weight: 600;
+  letter-spacing: .01em;
+  font-size: clamp(1.5rem, 7vw, 2.1rem);
+}
+.scanner__result-subtitle{
+  margin: 0;
+  color: var(--warm-white);
+  opacity: .92;
+  font-family: var(--serif);
+  font-size: 1.15rem;
+}
+
+@media (prefers-reduced-motion: reduce){
+  .scanner__result-icon{ animation: none; }
+  .scanner__spinner{ animation-duration: 1.4s; }
 }
 
 .scanner__error{

@@ -20,8 +20,19 @@
     <button type="submit">Ок</button>
   </form>
 
-  <div class="scanner__status scanner__status--idle" id="scanner-status">
-    <p class="scanner__status-text" id="scanner-status-text">Наведите камеру на QR-код билета</p>
+  <div class="scanner__status" id="scanner-status">
+    <p class="scanner__status-text">Наведите камеру на QR-код билета</p>
+  </div>
+
+  <!-- Full-screen result — impossible to miss between guests -->
+  <div class="scanner__result" id="scanner-result" aria-live="assertive">
+    <div class="scanner__result-icon" id="scanner-result-icon">
+      <svg id="scanner-result-icon-ok" viewBox="0 0 24 24" aria-hidden="true" style="display:none"><path d="M5 13l4 4L19 7"/></svg>
+      <svg id="scanner-result-icon-error" viewBox="0 0 24 24" aria-hidden="true" style="display:none"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      <span class="scanner__spinner" id="scanner-result-spinner" style="display:none"></span>
+    </div>
+    <p class="scanner__result-title" id="scanner-result-title"></p>
+    <p class="scanner__result-subtitle" id="scanner-result-subtitle"></p>
   </div>
 
   <div class="scanner__error" id="scanner-error" hidden>

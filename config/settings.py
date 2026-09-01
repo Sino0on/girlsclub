@@ -131,6 +131,19 @@ STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+if not DEBUG:
+    # Cache-busting: each collectstatic run (entrypoint.sh does this on
+    # every deploy) renames css/js/etc to include a content hash, e.g.
+    # style.a1b2c3.css. That forces browsers (and nginx, if it caches)
+    # to fetch the new file after a deploy instead of serving a stale
+    # cached copy of the old one under the same old filename.
+    STORAGES = {
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
+        },
+    }
+
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 

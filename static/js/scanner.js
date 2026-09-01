@@ -5,7 +5,12 @@
   var canvas = document.getElementById("scanner-canvas");
   var ctx = canvas.getContext("2d", { willReadFrequently: true });
   var statusEl = document.getElementById("scanner-status");
-  var statusText = document.getElementById("scanner-status-text");
+  var resultEl = document.getElementById("scanner-result");
+  var resultTitle = document.getElementById("scanner-result-title");
+  var resultSubtitle = document.getElementById("scanner-result-subtitle");
+  var iconOk = document.getElementById("scanner-result-icon-ok");
+  var iconError = document.getElementById("scanner-result-icon-error");
+  var spinner = document.getElementById("scanner-result-spinner");
   var errorEl = document.getElementById("scanner-error");
   var errorDetailEl = document.getElementById("scanner-error-detail");
   var retryBtn = document.getElementById("scanner-retry");
@@ -17,7 +22,7 @@
 
   var TOKEN_RE = /([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/;
   var COOLDOWN_MS = 4000;
-  var RESULT_DISPLAY_MS = 1800;
+  var RESULT_DISPLAY_MS = 2200;
 
   var scanning = true;
   var lastCode = null;
@@ -29,9 +34,35 @@
     return match ? match[1] : null;
   }
 
-  function setStatus(state, text) {
-    statusEl.className = "scanner__status scanner__status--" + state;
-    statusText.textContent = text;
+  var REASON_TITLES = {
+    busy: "Проверяем…",
+    ok: "Билет действителен",
+    used: "Уже использован",
+    rejected: "Билет аннулирован",
+    not_issued: "Билет не оформлен",
+    not_found: "Билет не найден",
+    error: "Ошибка связи",
+  };
+
+  function showResult(state, reason, subtitle) {
+    statusEl.hidden = true;
+    resultEl.className = "scanner__result scanner__result--" + state + " is-visible";
+    var title = REASON_TITLES[reason] || reason;
+    resultTitle.textContent = title;
+    // Don't repeat the subtitle if it's just the same phrase as the title
+    resultSubtitle.textContent = subtitle && subtitle !== title ? subtitle : "";
+
+    // Toggle via style.display, not the `hidden` property — SVG elements
+    // don't reliably reflect `.hidden` to the content attribute in every
+    // browser, which left both icons visible at once.
+    spinner.style.display = state === "busy" ? "block" : "none";
+    iconOk.style.display = state === "ok" ? "block" : "none";
+    iconError.style.display = state === "error" ? "block" : "none";
+  }
+
+  function hideResult() {
+    resultEl.classList.remove("is-visible");
+    statusEl.hidden = false;
   }
 
   function vibrate(pattern) {
@@ -66,7 +97,7 @@
 
   function submitToken(token) {
     scanning = false;
-    setStatus("busy", "Проверяем…");
+    showResult("busy", "busy", "");
 
     fetch("/tickets/scan/" + token + "/", {
       method: "POST",
@@ -77,21 +108,21 @@
       })
       .then(function (data) {
         if (data.ok) {
-          setStatus("ok", "✓ " + data.full_name + " · билетов: " + data.quantity);
+          showResult("ok", "ok", data.full_name + " · билетов: " + data.quantity);
           vibrate(120);
           beep(880, 150);
         } else {
-          setStatus("error", "✕ " + data.message);
+          showResult("error", data.reason, data.message);
           vibrate([80, 60, 80]);
           beep(220, 250);
         }
       })
       .catch(function () {
-        setStatus("error", "Не удалось связаться с сервером");
+        showResult("error", "error", "Проверьте подключение к интернету");
       })
       .finally(function () {
         setTimeout(function () {
-          setStatus("idle", "Наведите камеру на QR-код билета");
+          hideResult();
           scanning = true;
         }, RESULT_DISPLAY_MS);
       });
