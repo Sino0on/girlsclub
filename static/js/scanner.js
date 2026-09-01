@@ -154,7 +154,7 @@
 
   function showCameraError(detail) {
     errorDetailEl.textContent = detail;
-    errorEl.hidden = false;
+    errorEl.style.display = "flex";
   }
 
   // Names getUserMedia actually throws — show the real reason instead of
@@ -169,10 +169,29 @@
     SecurityError: "Браузер заблокировал доступ к камере на этой странице.",
   };
 
+  var currentStream = null;
+  var starting = false;
+
+  function stopCurrentStream() {
+    if (currentStream) {
+      currentStream.getTracks().forEach(function (track) {
+        track.stop();
+      });
+      currentStream = null;
+    }
+  }
+
   function startCamera() {
-    errorEl.hidden = true;
+    // Ignore overlapping calls (e.g. a stray extra tap on "Повторить"
+    // while a request is already in flight) — those used to race with
+    // an already-working stream and leave a stale error screen sitting
+    // on top of a camera feed that was actually fine underneath it.
+    if (starting) return;
+    starting = true;
+    errorEl.style.display = "none";
 
     if (!window.isSecureContext) {
+      starting = false;
       showCameraError(
         "Страница открыта не по HTTPS (" + location.protocol + "//" + location.host +
         "). Браузеры разрешают камеру только на защищённых (https://) страницах — " +
@@ -182,29 +201,46 @@
     }
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      starting = false;
       showCameraError("Этот браузер не поддерживает доступ к камере со страницы. Попробуйте актуальный Chrome или Safari.");
       return;
     }
 
+    stopCurrentStream();
+
     navigator.mediaDevices
       .getUserMedia({ video: { facingMode: { ideal: "environment" } } })
       .then(function (stream) {
+        currentStream = stream;
         video.srcObject = stream;
-        video.play();
+        // A success here always wins, even over a stale error left by
+        // some earlier/overlapping failed attempt.
+        errorEl.style.display = "none";
+        return video.play();
+      })
+      .then(function () {
         if (rafId) cancelAnimationFrame(rafId);
         rafId = requestAnimationFrame(tick);
       })
       .catch(function (err) {
         var detail = GET_USER_MEDIA_ERRORS[err && err.name];
         showCameraError(detail || ("Причина: " + ((err && (err.name || err.message)) || "неизвестна") + "."));
+      })
+      .finally(function () {
+        starting = false;
       });
   }
 
   retryBtn.addEventListener("click", startCamera);
 
+  function isManualFormOpen() {
+    return manualForm.style.display === "flex";
+  }
+
   manualToggle.addEventListener("click", function () {
-    manualForm.hidden = !manualForm.hidden;
-    if (!manualForm.hidden) manualInput.focus();
+    var open = !isManualFormOpen();
+    manualForm.style.display = open ? "flex" : "none";
+    if (open) manualInput.focus();
   });
 
   manualForm.addEventListener("submit", function (event) {
@@ -213,7 +249,7 @@
     var token = extractToken(raw) || raw;
     if (token) submitToken(token);
     manualInput.value = "";
-    manualForm.hidden = true;
+    manualForm.style.display = "none";
   });
 
   startCamera();

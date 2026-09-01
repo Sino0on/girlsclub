@@ -15,7 +15,7 @@
 
   <button type="button" class="scanner__manual-toggle" id="scanner-manual-toggle">Ввести вручную</button>
 
-  <form class="scanner__manual-form" id="scanner-manual-form" hidden>
+  <form class="scanner__manual-form" id="scanner-manual-form" style="display:none">
     <input type="text" id="scanner-manual-input" placeholder="Токен или ссылка билета" autocomplete="off">
     <button type="submit">Ок</button>
   </form>
@@ -35,7 +35,7 @@
     <p class="scanner__result-subtitle" id="scanner-result-subtitle"></p>
   </div>
 
-  <div class="scanner__error" id="scanner-error" hidden>
+  <div class="scanner__error" id="scanner-error" style="display:none">
     <p>Не удалось получить доступ к камере.</p>
     <p class="scanner__error-detail" id="scanner-error-detail"></p>
     <button type="button" id="scanner-retry" class="buy-button"><span>Повторить</span></button>
