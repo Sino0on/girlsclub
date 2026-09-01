@@ -7,6 +7,7 @@
   var statusEl = document.getElementById("scanner-status");
   var statusText = document.getElementById("scanner-status-text");
   var errorEl = document.getElementById("scanner-error");
+  var errorDetailEl = document.getElementById("scanner-error-detail");
   var retryBtn = document.getElementById("scanner-retry");
   var manualToggle = document.getElementById("scanner-manual-toggle");
   var manualForm = document.getElementById("scanner-manual-form");
@@ -120,8 +121,40 @@
     rafId = requestAnimationFrame(tick);
   }
 
+  function showCameraError(detail) {
+    errorDetailEl.textContent = detail;
+    errorEl.hidden = false;
+  }
+
+  // Names getUserMedia actually throws — show the real reason instead of
+  // a generic "didn't work", so this is diagnosable from the phone alone.
+  var GET_USER_MEDIA_ERRORS = {
+    NotAllowedError: "Доступ к камере запрещён. Откройте настройки сайта в браузере и разрешите камеру, затем нажмите «Повторить».",
+    PermissionDeniedError: "Доступ к камере запрещён. Откройте настройки сайта в браузере и разрешите камеру, затем нажмите «Повторить».",
+    NotFoundError: "На этом устройстве не найдена подходящая камера.",
+    NotSupportedError: "На этом устройстве не найдена подходящая камера.",
+    NotReadableError: "Камера занята другим приложением. Закройте его и нажмите «Повторить».",
+    OverconstrainedError: "Не удалось выбрать заднюю камеру устройства.",
+    SecurityError: "Браузер заблокировал доступ к камере на этой странице.",
+  };
+
   function startCamera() {
     errorEl.hidden = true;
+
+    if (!window.isSecureContext) {
+      showCameraError(
+        "Страница открыта не по HTTPS (" + location.protocol + "//" + location.host +
+        "). Браузеры разрешают камеру только на защищённых (https://) страницах — " +
+        "откройте сайт по https:// и попробуйте снова."
+      );
+      return;
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      showCameraError("Этот браузер не поддерживает доступ к камере со страницы. Попробуйте актуальный Chrome или Safari.");
+      return;
+    }
+
     navigator.mediaDevices
       .getUserMedia({ video: { facingMode: { ideal: "environment" } } })
       .then(function (stream) {
@@ -130,8 +163,9 @@
         if (rafId) cancelAnimationFrame(rafId);
         rafId = requestAnimationFrame(tick);
       })
-      .catch(function () {
-        errorEl.hidden = false;
+      .catch(function (err) {
+        var detail = GET_USER_MEDIA_ERRORS[err && err.name];
+        showCameraError(detail || ("Причина: " + ((err && (err.name || err.message)) || "неизвестна") + "."));
       });
   }
 
@@ -151,9 +185,5 @@
     manualForm.hidden = true;
   });
 
-  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-    startCamera();
-  } else {
-    errorEl.hidden = false;
-  }
+  startCamera();
 })();

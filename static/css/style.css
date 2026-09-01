@@ -1193,13 +1193,19 @@ body.scanner-page{ background: #000; overscroll-behavior: none; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1.3em;
+  gap: 1em;
   background: #14170d;
   color: var(--cream);
   text-align: center;
   padding: 2em;
   font-size: 1rem;
   line-height: 1.5;
+}
+.scanner__error-detail{
+  max-width: 340px;
+  font-size: .88rem;
+  opacity: .75;
+  margin: -.4em 0 .3em;
 }
 
 .scanner__manual-toggle{
