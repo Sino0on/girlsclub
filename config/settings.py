@@ -169,6 +169,16 @@ FREEDOMPAY_API_URL = os.environ.get(
     "FREEDOMPAY_API_URL", "https://api.freedompay.kz/g2g/payment_page/"
 )
 
+# --- Finik ---
+FINIK_TEST_MODE = env_bool("FINIK_TEST_MODE", True)
+FINIK_MODE = os.environ.get("FINIK_MODE", "beta")  # "beta" or "prod"
+FINIK_API_KEY = os.environ.get("FINIK_API_KEY", "")
+# PEM content with literal "\n" sequences (single .env line) — decoded
+# back to real newlines here. See tickets/finik.py for the algorithm.
+FINIK_PRIVATE_KEY = os.environ.get("FINIK_PRIVATE_KEY", "").replace("\\n", "\n")
+FINIK_ACCOUNT_ID = os.environ.get("FINIK_ACCOUNT_ID", "")
+FINIK_QR_NAME = os.environ.get("FINIK_QR_NAME", "FairyTale Picnic")
+
 # --- Email ---
 EMAIL_BACKEND = os.environ.get(
     "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"

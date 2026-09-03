@@ -20,4 +20,7 @@ urlpatterns = [
     path("payment/success/", views.payment_success, name="payment_success"),
     path("payment/fail/", views.payment_fail, name="payment_fail"),
     path("gateway/<uuid:token>/", views.fake_gateway, name="fake_gateway"),
+    # --- Finik flow ---
+    path("finik/webhook/", views.finik_webhook, name="finik_webhook"),
+    path("finik/return/<uuid:token>/", views.finik_return, name="finik_return"),
 ]

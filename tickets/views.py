@@ -1,3 +1,5 @@
+import json
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
@@ -7,7 +9,7 @@ from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from . import freedompay, services
+from . import finik, freedompay, services
 from .forms import OrderForm, ReceiptUploadForm
 from .models import Order, PaymentInstructions
 
@@ -18,8 +20,15 @@ def buy(request):
         if form.is_valid():
             order = form.save(commit=False)
             order.amount = order.quantity * settings.TICKET_PRICE_KGS
+            order.payment_method = Order.METHOD_FINIK
+            order.status = Order.STATUS_PENDING
             order.save()
-            return redirect("tickets:upload_receipt", token=order.qr_token)
+            try:
+                redirect_url = finik.create_payment(order)
+            except finik.FinikError as exc:
+                messages.error(request, f"Не удалось создать платёж: {exc}")
+                return render(request, "tickets/buy.html", {"form": form})
+            return redirect(redirect_url)
     else:
         form = OrderForm()
     return render(request, "tickets/buy.html", {"form": form})
@@ -196,3 +205,50 @@ def fake_gateway(request, token):
         return redirect(f"{target}?pg_order_id={order.qr_token}")
 
     return render(request, "tickets/fake_gateway.html", {"order": order})
+
+
+# =====================================================================
+# Finik flow — the active payment method.
+# =====================================================================
+
+
+def finik_return(request, token):
+    """Where Finik redirects the buyer's browser after they pay.
+    Just a landing page — the webhook below (not this) is the source
+    of truth for whether the order is actually paid, so this may
+    render slightly before that webhook has landed."""
+    order = get_object_or_404(Order, qr_token=token)
+    return render(request, "tickets/success.html", {"order": order})
+
+
+@csrf_exempt
+@require_POST
+def finik_webhook(request):
+    """Server-to-server notification Finik sends once a payment
+    succeeds (per their docs, only ever sent on success — there's no
+    webhook call for a failed/abandoned payment)."""
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return HttpResponse(status=400)
+
+    if not finik.verify_webhook(request, payload):
+        return HttpResponse(status=401)
+
+    status = str(payload.get("status", "")).lower()
+    if status not in ("success", "succeeded"):
+        # Finik's docs say this shouldn't happen, but don't fail the
+        # request over it — just don't act on it either.
+        return HttpResponse(status=200)
+
+    payment_id = (payload.get("fields") or {}).get("paymentId")
+    order = Order.objects.filter(qr_token=payment_id).first()
+    if not order:
+        return HttpResponse(status=200)
+
+    services.mark_order_paid(
+        order,
+        payment_id=payload.get("transactionId", ""),
+        payment_method=Order.METHOD_FINIK,
+    )
+    return HttpResponse(status=200)

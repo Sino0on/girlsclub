@@ -12,11 +12,12 @@ class OrderAdmin(admin.ModelAdmin):
         "phone",
         "quantity",
         "amount",
+        "payment_method",
         "status",
         "created_at",
         "checked_in_column",
     )
-    list_filter = ("status",)
+    list_filter = ("payment_method", "status")
     search_fields = ("full_name", "email", "phone", "qr_token", "payment_id")
     readonly_fields = (
         "qr_token",
@@ -39,6 +40,7 @@ class OrderAdmin(admin.ModelAdmin):
         "rules_agreed",
         "quantity",
         "amount",
+        "payment_method",
         "status",
         "receipt_preview",
         "qr_token",

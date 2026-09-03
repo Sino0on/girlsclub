@@ -20,27 +20,37 @@ class Order(models.Model):
     a moderator. A moderator then just confirms or rejects it in the
     Telegram group; rejecting voids the ticket and emails the buyer.
 
-    The STATUS_PENDING / STATUS_PAID / STATUS_FAILED values and
-    payment_id/paid_at fields are left over from the (currently paused)
-    FreedomPay integration in freedompay.py / views.fake_gateway — kept
-    working in case that gets switched back on later.
+    STATUS_PENDING / STATUS_PAID / STATUS_FAILED are shared by any
+    automated gateway (FreedomPay, Finik) — generic "sent to gateway /
+    gateway confirmed paid / gateway confirmed failed" states, not
+    tied to one provider. `payment_method` records which one actually
+    handled a given order.
     """
 
-    # --- FreedomPay flow (paused, kept working) ---
+    METHOD_MANUAL = "manual"
+    METHOD_FREEDOMPAY = "freedompay"
+    METHOD_FINIK = "finik"
+    METHOD_CHOICES = [
+        (METHOD_MANUAL, "Ручной перевод"),
+        (METHOD_FREEDOMPAY, "FreedomPay"),
+        (METHOD_FINIK, "Finik"),
+    ]
+
+    # --- Automated gateway flow (FreedomPay paused, Finik active) ---
     STATUS_PENDING = "pending"
     STATUS_PAID = "paid"
     STATUS_FAILED = "failed"
 
-    # --- Manual bank-transfer flow (current) ---
+    # --- Manual bank-transfer flow ---
     STATUS_AWAITING_RECEIPT = "awaiting_receipt"
     STATUS_PENDING_REVIEW = "pending_review"
     STATUS_APPROVED = "approved"
     STATUS_REJECTED = "rejected"
 
     STATUS_CHOICES = [
-        (STATUS_PENDING, "Ожидает оплаты (FreedomPay)"),
-        (STATUS_PAID, "Оплачен (FreedomPay)"),
-        (STATUS_FAILED, "Не оплачен / отменён (FreedomPay)"),
+        (STATUS_PENDING, "Ожидает оплаты"),
+        (STATUS_PAID, "Оплачен"),
+        (STATUS_FAILED, "Не оплачен / отменён"),
         (STATUS_AWAITING_RECEIPT, "Ожидает чек оплаты"),
         (STATUS_PENDING_REVIEW, "Билет выдан, ждёт проверки модератором"),
         (STATUS_APPROVED, "Подтверждён модератором"),
@@ -54,6 +64,12 @@ class Order(models.Model):
 
     quantity = models.PositiveIntegerField("Количество билетов", default=1)
     amount = models.DecimalField("Сумма, сом", max_digits=10, decimal_places=2)
+    payment_method = models.CharField(
+        "Способ оплаты",
+        max_length=16,
+        choices=METHOD_CHOICES,
+        default=METHOD_MANUAL,
+    )
     status = models.CharField(
         "Статус",
         max_length=20,
@@ -79,7 +95,7 @@ class Order(models.Model):
     )
 
     payment_id = models.CharField(
-        "ID платежа FreedomPay", max_length=100, blank=True
+        "ID платежа у платёжного шлюза", max_length=100, blank=True
     )
 
     telegram_chat_id = models.CharField(
@@ -98,7 +114,7 @@ class Order(models.Model):
     created_at = models.DateTimeField("Создан", auto_now_add=True)
     submitted_at = models.DateTimeField("Чек загружен", blank=True, null=True)
     decided_at = models.DateTimeField("Решение модератора", blank=True, null=True)
-    paid_at = models.DateTimeField("Оплачен (FreedomPay)", blank=True, null=True)
+    paid_at = models.DateTimeField("Оплачен (через шлюз)", blank=True, null=True)
 
     class Meta:
         verbose_name = "Заказ"
@@ -108,7 +124,7 @@ class Order(models.Model):
     def __str__(self):
         return f"{self.full_name} — {self.get_status_display()}"
 
-    # --- FreedomPay flow helpers (paused) ---
+    # --- Automated gateway flow helpers (FreedomPay paused, Finik active) ---
     @property
     def is_paid(self):
         return self.status == self.STATUS_PAID

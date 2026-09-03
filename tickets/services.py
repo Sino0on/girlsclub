@@ -190,14 +190,17 @@ def try_check_in(order):
 # --- FreedomPay flow (paused, kept working) ---
 
 
-def mark_order_paid(order, payment_id=""):
-    """Single entry point for confirming a FreedomPay payment. Called by
-    both the real webhook and the local test-mode fake gateway."""
+def mark_order_paid(order, payment_id="", payment_method=None):
+    """Single entry point for confirming a gateway payment (FreedomPay
+    or Finik). Called by the real webhook and the local test-mode fake
+    gateway alike — idempotent, so retried webhook deliveries are safe."""
     if order.status == Order.STATUS_PAID:
         return  # already processed — avoid duplicate emails on retried callbacks
 
     order.status = Order.STATUS_PAID
     order.payment_id = payment_id
+    if payment_method:
+        order.payment_method = payment_method
     order.paid_at = timezone.now()
     if not order.qr_image:
         generate_qr_code(order)
