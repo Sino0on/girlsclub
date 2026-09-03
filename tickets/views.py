@@ -200,11 +200,12 @@ def payment_fail(request):
 
 
 def fake_gateway(request, token):
-    """Stand-in for FreedomPay's hosted payment page.
+    """Stand-in for FreedomPay's or Finik's hosted payment page — shared
+    by both, the template picks its wording from order.payment_method.
 
-    Only reachable while FREEDOMPAY_TEST_MODE is on or real credentials
-    aren't configured yet — lets the full purchase flow be tested end
-    to end without a live merchant account.
+    Only reachable while that gateway's *_TEST_MODE is on or its real
+    credentials aren't configured yet — lets the full purchase flow be
+    tested end to end without a live merchant account.
     """
     order = get_object_or_404(Order, qr_token=token)
 

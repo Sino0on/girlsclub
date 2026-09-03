@@ -1,19 +1,25 @@
 {% extends "base.html" %}
 
-{% block title %}Тестовая оплата — FreedomPay (sandbox){% endblock %}
+{% block title %}Тестовая оплата — {{ order.get_payment_method_display }} (sandbox){% endblock %}
 {% block body_class %}checkout-page{% endblock %}
 
 {% block body %}
 <main class="checkout">
   <div class="checkout__card">
-    <p class="checkout__badge">Тестовый режим FreedomPay</p>
+    <p class="checkout__badge">Тестовый режим {{ order.get_payment_method_display }}</p>
     <div class="checkout__divider" aria-hidden="true">✦</div>
     <h1 class="checkout__title">Оплата билета</h1>
     <p class="checkout__subtitle">{{ order.full_name }} · {{ order.amount }} сом</p>
     <p class="checkout__note">
-      Это временная заглушка вместо реальной страницы FreedomPay — она
-      исчезнет сама, как только в .env появятся боевые
-      FREEDOMPAY_MERCHANT_ID / FREEDOMPAY_SECRET_KEY (и FREEDOMPAY_TEST_MODE=False).
+      {% if order.payment_method == "finik" %}
+        Это временная заглушка вместо реальной страницы Finik — она
+        исчезнет сама, как только в .env появятся боевые FINIK_API_KEY /
+        FINIK_PRIVATE_KEY / FINIK_ACCOUNT_ID (и FINIK_TEST_MODE=False).
+      {% else %}
+        Это временная заглушка вместо реальной страницы FreedomPay — она
+        исчезнет сама, как только в .env появятся боевые
+        FREEDOMPAY_MERCHANT_ID / FREEDOMPAY_SECRET_KEY (и FREEDOMPAY_TEST_MODE=False).
+      {% endif %}
     </p>
 
     <form method="post" class="checkout-form">
