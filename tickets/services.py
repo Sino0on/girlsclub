@@ -187,7 +187,34 @@ def try_check_in(order):
     return True, "ok", "Билет действителен"
 
 
-# --- FreedomPay flow (paused, kept working) ---
+# --- Gateway flow (FreedomPay paused, Finik active) ---
+
+
+def notify_group_of_purchase(order):
+    """Heads-up to the Telegram group whenever a gateway payment
+    (FreedomPay/Finik) succeeds — plain informational message, no
+    Да/Нет buttons (unlike notify_moderators, which is for reviewing a
+    manual-transfer receipt, not just announcing a sale)."""
+    token = settings.TELEGRAM_BOT_TOKEN
+    chat_id = settings.TELEGRAM_MODERATOR_CHAT_ID
+    if not token or not chat_id:
+        return
+
+    text = (
+        "💳 Куплен билет!\n\n"
+        f"ФИО: {order.full_name}\n"
+        f"Email: {order.email}\n"
+        f"Телефон: {order.phone}\n"
+        f"Количество: {order.quantity}\n"
+        f"Сумма: {order.amount} сом\n"
+        f"Способ оплаты: {order.get_payment_method_display()}"
+    )
+    response = requests.post(
+        f"https://api.telegram.org/bot{token}/sendMessage",
+        data={"chat_id": chat_id, "text": text},
+        timeout=15,
+    )
+    response.raise_for_status()
 
 
 def mark_order_paid(order, payment_id="", payment_method=None):
@@ -206,6 +233,13 @@ def mark_order_paid(order, payment_id="", payment_method=None):
         generate_qr_code(order)
     order.save()
     send_ticket_email(order)
+
+    try:
+        notify_group_of_purchase(order)
+    except Exception:
+        # The buyer already has their ticket regardless of whether this
+        # Telegram heads-up goes through — never block on it.
+        pass
 
 
 def mark_order_failed(order):
