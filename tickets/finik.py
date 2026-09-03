@@ -196,15 +196,28 @@ def _create_payment_via_api(order):
     except requests.RequestException as exc:
         raise FinikError(f"Не удалось связаться с Finik: {exc}") from exc
 
-    if response.status_code == 302:
+    # Some docs/examples show a 302 with the payment URL in Location;
+    # others show a 201 with {paymentId, paymentUrl, status} JSON.
+    # Handle both rather than assume which one a given account gets.
+    if response.status_code in (301, 302, 303, 307, 308):
         location = response.headers.get("Location")
         if not location:
-            raise FinikError("Finik ответил 302 без заголовка Location")
+            raise FinikError(f"Finik ответил {response.status_code} без заголовка Location")
         return location
+
+    if response.status_code == 201:
+        try:
+            payload = response.json()
+        except ValueError as exc:
+            raise FinikError("Finik ответил 201 без корректного JSON") from exc
+        payment_url = payload.get("paymentUrl")
+        if not payment_url:
+            raise FinikError(f"Finik ответил 201 без paymentUrl: {payload}")
+        return payment_url
 
     try:
         payload = response.json()
-        message = payload.get("ErrorMessage") or payload.get("errorMessage") or response.text
+        message = payload.get("ErrorMessage") or payload.get("errorMessage") or payload.get("message") or response.text
     except ValueError:
         message = response.text
     raise FinikError(f"Finik вернул {response.status_code}: {message}")
