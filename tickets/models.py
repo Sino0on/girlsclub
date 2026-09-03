@@ -170,3 +170,42 @@ class PaymentInstructions(models.Model):
 
     def __str__(self):
         return f"Реквизиты ({'активны' if self.is_active else 'неактивны'})"
+
+
+class PaymentSettings(models.Model):
+    """Singleton — one row, always pk=1. `active_method` decides which
+    gateway the "Купить билет" button on the site actually uses.
+    Change it here to switch FreedomPay <-> Finik <-> manual transfer
+    without touching code, .env, or redeploying."""
+
+    active_method = models.CharField(
+        "Активный способ оплаты",
+        max_length=16,
+        choices=Order.METHOD_CHOICES,
+        default=Order.METHOD_FINIK,
+        help_text=(
+            "Каким способом оплачивается билет при нажатии «Купить билет» "
+            "на сайте. FreedomPay/Finik используют тестовый режим, пока не "
+            "заданы реальные ключи в .env (см. FREEDOMPAY_TEST_MODE / "
+            "FINIK_TEST_MODE)."
+        ),
+    )
+
+    class Meta:
+        verbose_name = "Настройки оплаты"
+        verbose_name_plural = "Настройки оплаты"
+
+    def __str__(self):
+        return f"Активный способ оплаты: {self.get_active_method_display()}"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        pass  # singleton — never actually delete it
+
+    @classmethod
+    def load(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj

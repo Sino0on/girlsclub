@@ -1,7 +1,9 @@
 from django.contrib import admin
+from django.shortcuts import redirect
+from django.urls import reverse
 from django.utils.html import format_html
 
-from .models import Order, PaymentInstructions
+from .models import Order, PaymentInstructions, PaymentSettings
 
 
 @admin.register(Order)
@@ -88,3 +90,23 @@ class OrderAdmin(admin.ModelAdmin):
 class PaymentInstructionsAdmin(admin.ModelAdmin):
     list_display = ("__str__", "is_active", "updated_at")
     list_editable = ("is_active",)
+
+
+@admin.register(PaymentSettings)
+class PaymentSettingsAdmin(admin.ModelAdmin):
+    """Singleton — one row controls which gateway "Купить билет" uses."""
+
+    list_display = ("active_method",)
+    fields = ("active_method",)
+
+    def has_add_permission(self, request):
+        return not PaymentSettings.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def changelist_view(self, request, extra_context=None):
+        # Skip straight to the (only) row's edit form instead of a
+        # changelist with one link to click through.
+        obj = PaymentSettings.load()
+        return redirect(reverse("admin:tickets_paymentsettings_change", args=[obj.pk]))

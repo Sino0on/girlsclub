@@ -11,7 +11,14 @@ from django.views.decorators.http import require_POST
 
 from . import finik, freedompay, services
 from .forms import OrderForm, ReceiptUploadForm
-from .models import Order, PaymentInstructions
+from .models import Order, PaymentInstructions, PaymentSettings
+
+# Gateways selectable from the admin (Настройки оплаты). Each module
+# exposes create_payment(order) -> redirect URL, and its own Error class.
+GATEWAYS = {
+    Order.METHOD_FINIK: (finik, finik.FinikError),
+    Order.METHOD_FREEDOMPAY: (freedompay, freedompay.FreedomPayError),
+}
 
 
 def buy(request):
@@ -20,12 +27,20 @@ def buy(request):
         if form.is_valid():
             order = form.save(commit=False)
             order.amount = order.quantity * settings.TICKET_PRICE_KGS
-            order.payment_method = Order.METHOD_FINIK
+            method = PaymentSettings.load().active_method
+            order.payment_method = method
+
+            if method == Order.METHOD_MANUAL:
+                order.save()
+                return redirect("tickets:upload_receipt", token=order.qr_token)
+
             order.status = Order.STATUS_PENDING
             order.save()
+
+            gateway, gateway_error = GATEWAYS[method]
             try:
-                redirect_url = finik.create_payment(order)
-            except finik.FinikError as exc:
+                redirect_url = gateway.create_payment(order)
+            except gateway_error as exc:
                 messages.error(request, f"Не удалось создать платёж: {exc}")
                 return render(request, "tickets/buy.html", {"form": form})
             return redirect(redirect_url)
