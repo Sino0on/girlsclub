@@ -7,6 +7,7 @@ only needs to *receive* button presses, which requires a running bot.
 
 import asyncio
 import logging
+import socket
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.client.session.aiohttp import AiohttpSession
@@ -68,6 +69,14 @@ async def run():
     # process (docker-compose would restart it, but that's a much
     # blunter, slower way to recover from a transient network hiccup).
     session = AiohttpSession(timeout=90)
+    # Force IPv4: this host has IPv6 "available" at the socket level
+    # but no working route, so aiohttp trying an IPv6 address for
+    # api.telegram.org first is exactly what caused the timeouts —
+    # see tickets/net.py for the matching fix for requests/urllib3.
+    # AiohttpSession has no public param for this; _connector_init is
+    # a plain dict consumed lazily by TCPConnector, so this is safe to
+    # set here before the first request creates the connector.
+    session._connector_init["family"] = socket.AF_INET
     bot = Bot(token=settings.TELEGRAM_BOT_TOKEN, session=session)
 
     backoff = 5
