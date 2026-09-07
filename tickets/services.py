@@ -1,5 +1,6 @@
 import io
 import json
+import time
 
 import qrcode
 import requests
@@ -9,34 +10,52 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from .models import Order
+from .models import Order, Ticket
 
 
-def generate_qr_code(order):
-    """Render a QR PNG encoding this order's verification URL and attach
-    it to the order (does not save the model — caller is expected to)."""
-    img = qrcode.make(order.get_verify_url())
+def generate_qr_code(ticket):
+    """Render a QR PNG encoding this ticket's verification URL and
+    attach it (does not save the model — caller is expected to)."""
+    img = qrcode.make(ticket.get_verify_url())
     buffer = io.BytesIO()
     img.save(buffer, format="PNG")
-    filename = f"ticket-{order.qr_token}.png"
-    order.qr_image.save(filename, ContentFile(buffer.getvalue()), save=False)
+    filename = f"ticket-{ticket.qr_token}.png"
+    ticket.qr_image.save(filename, ContentFile(buffer.getvalue()), save=False)
+
+
+def create_tickets(order):
+    """Create order.quantity individual Ticket rows, each with its own
+    QR — idempotent, so calling this twice (e.g. a retried webhook)
+    never issues duplicates. Returns the order's tickets."""
+    existing = list(order.tickets.all())
+    if existing:
+        return existing
+
+    tickets = []
+    for _ in range(order.quantity):
+        ticket = Ticket(order=order)
+        generate_qr_code(ticket)
+        ticket.save()
+        tickets.append(ticket)
+    return tickets
 
 
 def send_ticket_email(order):
-    subject = "Ваш билет на FairyTale Picnic"
-    context = {"order": order}
+    tickets = list(order.tickets.all())
+    context = {"order": order, "tickets": tickets}
+    subject = "Ваш билет на FairyTale Picnic" if len(tickets) == 1 else "Ваши билеты на FairyTale Picnic"
     text_body = render_to_string("tickets/email/ticket_email.txt", context)
     html_body = render_to_string("tickets/email/ticket_email.html", context)
 
     message = EmailMultiAlternatives(subject=subject, body=text_body, to=[order.email])
     message.attach_alternative(html_body, "text/html")
 
-    if order.qr_image:
-        order.qr_image.open("rb")
-        message.attach(
-            f"ticket-{order.qr_token}.png", order.qr_image.read(), "image/png"
-        )
-        order.qr_image.close()
+    for i, ticket in enumerate(tickets, start=1):
+        if not ticket.qr_image:
+            continue
+        ticket.qr_image.open("rb")
+        message.attach(f"ticket-{i}-{ticket.qr_token}.png", ticket.qr_image.read(), "image/png")
+        ticket.qr_image.close()
 
     message.send(fail_silently=False)
     order.email_sent_at = timezone.now()
@@ -121,9 +140,10 @@ def notify_moderators(order):
 
 def issue_ticket(order):
     """Called the moment a buyer uploads their bank-transfer receipt —
-    the ticket is issued right away (no waiting on moderator review);
-    the Telegram Да/Нет is purely a post-hoc check that can void it."""
-    generate_qr_code(order)
+    the ticket(s) are issued right away (no waiting on moderator
+    review); the Telegram Да/Нет is purely a post-hoc check that can
+    void them."""
+    create_tickets(order)
     order.status = Order.STATUS_PENDING_REVIEW
     order.submitted_at = timezone.now()
     order.save()
@@ -161,8 +181,8 @@ def reject_order(order_id):
     send_rejection_email(order)
 
 
-def try_check_in(order):
-    """Attempt to check a ticket in at the door. Used by both the
+def try_check_in(ticket):
+    """Attempt to check one ticket in at the door. Used by both the
     manual /tickets/verify/ page and the camera scanner's JSON API —
     the single place that decides green vs. red.
 
@@ -172,19 +192,52 @@ def try_check_in(order):
       ok=False, reason="rejected"    -> red, ticket was voided
       ok=False, reason="not_issued"  -> red, no valid ticket on this order
     """
+    order = ticket.order
     if order.is_rejected:
         return False, "rejected", "Билет аннулирован"
 
     if not order.is_valid_ticket:
         return False, "not_issued", "Билет ещё не оформлен"
 
-    if order.is_checked_in:
-        when = timezone.localtime(order.checked_in_at).strftime("%H:%M")
+    if ticket.is_checked_in:
+        when = timezone.localtime(ticket.checked_in_at).strftime("%H:%M")
         return False, "used", f"Уже использован сегодня в {when}"
 
-    order.checked_in_at = timezone.now()
-    order.save(update_fields=["checked_in_at"])
+    ticket.checked_in_at = timezone.now()
+    ticket.save(update_fields=["checked_in_at"])
     return True, "ok", "Билет действителен"
+
+
+def send_tickets_to_telegram(order, telegram_id, pause=0.5):
+    """Send every ticket in the order as its own photo to a Telegram
+    chat — used by the issue_ticket management command. `pause` throttles
+    between sends so a big quantity doesn't trip Telegram's flood control
+    on a single chat."""
+    token = settings.TELEGRAM_BOT_TOKEN
+    tickets = list(order.tickets.all())
+    total = len(tickets)
+    for i, ticket in enumerate(tickets, start=1):
+        caption = (
+            "🎟 Ваш билет FairyTale Picnic\n\n"
+            f"{order.full_name}\n"
+            f"Билет {i} из {total}\n\n"
+            "Покажите этот QR-код на входе."
+        )
+        ticket.qr_image.open("rb")
+        try:
+            response = requests.post(
+                f"https://api.telegram.org/bot{token}/sendPhoto",
+                data={"chat_id": telegram_id, "caption": caption},
+                files={"photo": ticket.qr_image.read()},
+                timeout=15,
+            )
+        finally:
+            ticket.qr_image.close()
+        result = response.json()
+        if not result.get("ok"):
+            raise RuntimeError(f"Telegram API error on ticket {i}/{total}: {result}")
+        if i < total and pause:
+            time.sleep(pause)
 
 
 # --- Gateway flow (FreedomPay paused, Finik active) ---
@@ -229,9 +282,8 @@ def mark_order_paid(order, payment_id="", payment_method=None):
     if payment_method:
         order.payment_method = payment_method
     order.paid_at = timezone.now()
-    if not order.qr_image:
-        generate_qr_code(order)
     order.save()
+    create_tickets(order)
     send_ticket_email(order)
 
     try:

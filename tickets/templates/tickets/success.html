@@ -6,22 +6,33 @@
 {% block body %}
 <main class="checkout">
   <div class="checkout__card">
-    {% if order.qr_image %}
+    {% with tickets=order.tickets.all %}
+    {% if tickets %}
       <div class="checkout__divider" aria-hidden="true">✦</div>
       <h1 class="checkout__title">Добро пожаловать в сказку</h1>
       <p class="checkout__subtitle">
         Билетов: {{ order.quantity }} · Заказ на имя {{ order.full_name }}
       </p>
 
-      <div class="ticket-qr">
-        {% if order.qr_image %}
-          <img src="{{ order.qr_image.url }}" alt="QR-код билета">
-        {% endif %}
+      <div class="ticket-qr{% if order.quantity > 1 %} ticket-qr--many{% endif %}">
+        {% for ticket in tickets %}
+          <div class="ticket-qr__item">
+            <img src="{{ ticket.qr_image.url }}" alt="QR-код билета {{ forloop.counter }}">
+            {% if order.quantity > 1 %}
+              <span class="ticket-qr__label">Билет {{ forloop.counter }} из {{ order.quantity }}</span>
+            {% endif %}
+          </div>
+        {% endfor %}
       </div>
 
       <p class="checkout__note">
-        Мы также отправили этот QR-код на {{ order.email }} — он понадобится
-        на входе в Event Garden 13 сентября 2026.
+        {% if order.quantity > 1 %}
+          Мы также отправили все {{ order.quantity }} QR-кода на {{ order.email }} —
+        {% else %}
+          Мы также отправили этот QR-код на {{ order.email }} —
+        {% endif %}
+        он понадобится на входе в Event Garden 13 сентября 2026.
+        {% if order.quantity > 1 %}Каждый билет можно показать отдельно — их можно передать разным людям.{% endif %}
       </p>
 
       <a href="{% url 'event:home' %}" class="checkout__back">← Вернуться на страницу события</a>
@@ -31,6 +42,7 @@
       <p class="checkout__subtitle">Это займёт всего пару секунд — страница обновится сама.</p>
       <meta http-equiv="refresh" content="4">
     {% endif %}
+    {% endwith %}
   </div>
 </main>
 {% endblock %}

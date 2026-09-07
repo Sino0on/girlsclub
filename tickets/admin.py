@@ -3,7 +3,25 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.html import format_html
 
-from .models import Order, PaymentInstructions, PaymentSettings
+from .models import Order, PaymentInstructions, PaymentSettings, Ticket
+
+
+class TicketInline(admin.TabularInline):
+    model = Ticket
+    extra = 0
+    can_delete = False
+    fields = ("qr_preview", "qr_token", "checked_in_at")
+    readonly_fields = ("qr_preview", "qr_token", "checked_in_at")
+
+    def qr_preview(self, obj):
+        if obj.qr_image:
+            return format_html('<img src="{}" style="height:90px" />', obj.qr_image.url)
+        return "—"
+
+    qr_preview.short_description = "QR-код"
+
+    def has_add_permission(self, request, obj=None):
+        return False  # tickets are only ever created by services.create_tickets
 
 
 @admin.register(Order)
@@ -20,10 +38,9 @@ class OrderAdmin(admin.ModelAdmin):
         "checked_in_column",
     )
     list_filter = ("payment_method", "status")
-    search_fields = ("full_name", "email", "phone", "qr_token", "payment_id")
+    search_fields = ("full_name", "email", "phone", "qr_token", "payment_id", "tickets__qr_token")
     readonly_fields = (
         "qr_token",
-        "qr_preview",
         "receipt_preview",
         "created_at",
         "submitted_at",
@@ -31,7 +48,6 @@ class OrderAdmin(admin.ModelAdmin):
         "paid_at",
         "email_sent_at",
         "rejection_email_sent_at",
-        "checked_in_at",
         "telegram_chat_id",
         "telegram_message_id",
     )
@@ -46,7 +62,6 @@ class OrderAdmin(admin.ModelAdmin):
         "status",
         "receipt_preview",
         "qr_token",
-        "qr_preview",
         "payment_id",
         "telegram_chat_id",
         "telegram_message_id",
@@ -56,15 +71,8 @@ class OrderAdmin(admin.ModelAdmin):
         "paid_at",
         "email_sent_at",
         "rejection_email_sent_at",
-        "checked_in_at",
     )
-
-    def qr_preview(self, obj):
-        if obj.qr_image:
-            return format_html('<img src="{}" style="height:160px" />', obj.qr_image.url)
-        return "—"
-
-    qr_preview.short_description = "QR-код"
+    inlines = [TicketInline]
 
     def receipt_preview(self, obj):
         if not obj.receipt:
@@ -80,10 +88,28 @@ class OrderAdmin(admin.ModelAdmin):
     receipt_preview.short_description = "Чек"
 
     def checked_in_column(self, obj):
-        return obj.is_checked_in
+        return f"{obj.checked_in_count} / {obj.quantity}"
 
-    checked_in_column.boolean = True
     checked_in_column.short_description = "На входе"
+
+
+@admin.register(Ticket)
+class TicketAdmin(admin.ModelAdmin):
+    list_display = ("id", "order", "qr_token", "checked_in_at")
+    list_filter = ("checked_in_at",)
+    search_fields = ("qr_token", "order__full_name", "order__email")
+    readonly_fields = ("order", "qr_token", "qr_preview", "checked_in_at")
+    fields = ("order", "qr_token", "qr_preview", "checked_in_at")
+
+    def qr_preview(self, obj):
+        if obj.qr_image:
+            return format_html('<img src="{}" style="height:200px" />', obj.qr_image.url)
+        return "—"
+
+    qr_preview.short_description = "QR-код"
+
+    def has_add_permission(self, request):
+        return False
 
 
 @admin.register(PaymentInstructions)

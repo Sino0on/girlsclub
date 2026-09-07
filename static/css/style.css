@@ -975,8 +975,16 @@ section{ scroll-margin-top: 0; }
 
 .ticket-qr{
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
+  gap: 1.4em;
   margin: 1.2em 0;
+}
+.ticket-qr__item{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .5em;
 }
 .ticket-qr img{
   width: 220px;
@@ -986,6 +994,15 @@ section{ scroll-margin-top: 0; }
   border-radius: 10px;
   box-shadow: 0 14px 30px rgba(79,91,50,.18);
 }
+.ticket-qr__label{
+  font-family: var(--caps);
+  font-size: .74rem;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--matcha);
+}
+/* several tickets on one order — shrink so they still fit nicely */
+.ticket-qr--many img{ width: 150px; height: 150px; }
 
 /* =====================================================
    WHATSAPP CONTACT WIDGET (floating, every page)

@@ -87,11 +87,12 @@ class Order(models.Model):
         ],
     )
 
+    # Identifies this *order* — used in checkout URLs (upload_receipt,
+    # fake_gateway, finik_return) and as the PaymentId sent to
+    # FreedomPay/Finik. Not what a door-staff QR scan reads; each
+    # individual ticket (see Ticket below) has its own qr_token for that.
     qr_token = models.UUIDField(
-        "QR-токен", default=uuid.uuid4, editable=False, unique=True
-    )
-    qr_image = models.ImageField(
-        "QR-код", upload_to="qrcodes/", blank=True, null=True
+        "Токен заказа", default=uuid.uuid4, editable=False, unique=True
     )
 
     payment_id = models.CharField(
@@ -109,7 +110,6 @@ class Order(models.Model):
     rejection_email_sent_at = models.DateTimeField(
         "Письмо об аннулировании отправлено", blank=True, null=True
     )
-    checked_in_at = models.DateTimeField("Отмечен на входе", blank=True, null=True)
 
     created_at = models.DateTimeField("Создан", auto_now_add=True)
     submitted_at = models.DateTimeField("Чек загружен", blank=True, null=True)
@@ -142,6 +142,36 @@ class Order(models.Model):
     @property
     def is_rejected(self):
         return self.status in (self.STATUS_REJECTED, self.STATUS_FAILED)
+
+    @property
+    def checked_in_count(self):
+        return self.tickets.filter(checked_in_at__isnull=False).count()
+
+
+class Ticket(models.Model):
+    """One individual, independently-scannable ticket. An Order with
+    quantity=5 gets 5 of these, each with its own QR — so a group can
+    walk in separately, and the door scanner can't be tricked into
+    admitting more people than were actually paid for by reusing one
+    QR. Created together, right when the order's tickets are issued
+    (see services.create_tickets)."""
+
+    order = models.ForeignKey(Order, related_name="tickets", on_delete=models.CASCADE)
+    qr_token = models.UUIDField(
+        "QR-токен", default=uuid.uuid4, editable=False, unique=True
+    )
+    qr_image = models.ImageField(
+        "QR-код", upload_to="qrcodes/", blank=True, null=True
+    )
+    checked_in_at = models.DateTimeField("Отмечен на входе", blank=True, null=True)
+
+    class Meta:
+        verbose_name = "Билет"
+        verbose_name_plural = "Билеты"
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return f"Билет #{self.pk} — {self.order.full_name}"
 
     @property
     def is_checked_in(self):

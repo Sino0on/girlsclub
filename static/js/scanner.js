@@ -108,7 +108,10 @@
       })
       .then(function (data) {
         if (data.ok) {
-          showResult("ok", "ok", data.full_name + " · билетов: " + data.quantity);
+          var groupNote = data.quantity > 1
+            ? " · в заказе использовано " + data.checked_in_count + " из " + data.quantity
+            : "";
+          showResult("ok", "ok", data.full_name + groupNote);
           vibrate(120);
           beep(880, 150);
         } else {

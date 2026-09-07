@@ -11,7 +11,7 @@ from django.views.decorators.http import require_POST
 
 from . import finik, freedompay, services
 from .forms import OrderForm, ReceiptUploadForm
-from .models import Order, PaymentInstructions, PaymentSettings
+from .models import Order, PaymentInstructions, PaymentSettings, Ticket
 
 # Gateways selectable from the admin (Настройки оплаты). Each module
 # exposes create_payment(order) -> redirect URL, and its own Error class.
@@ -82,13 +82,13 @@ def verify(request, token):
     own camera app) to see the ticket and mark it used by hand. The
     camera *scanner* page (below) is the faster way to do this all day —
     this page still works standalone as a fallback / for spot checks."""
-    order = get_object_or_404(Order, qr_token=token)
+    ticket = get_object_or_404(Ticket, qr_token=token)
 
     if request.method == "POST":
-        services.try_check_in(order)
-        return redirect("tickets:verify", token=order.qr_token)
+        services.try_check_in(ticket)
+        return redirect("tickets:verify", token=ticket.qr_token)
 
-    return render(request, "tickets/verify.html", {"order": order})
+    return render(request, "tickets/verify.html", {"ticket": ticket, "order": ticket.order})
 
 
 @staff_member_required
@@ -103,18 +103,19 @@ def scanner(request):
 def scan_api(request, token):
     """JSON endpoint the scanner page calls after decoding each QR.
     Same green/red decision as `verify`, just machine-readable."""
-    order = Order.objects.filter(qr_token=token).first()
-    if not order:
+    ticket = Ticket.objects.select_related("order").filter(qr_token=token).first()
+    if not ticket:
         return JsonResponse({"ok": False, "reason": "not_found", "message": "Билет не найден"})
 
-    ok, reason, message = services.try_check_in(order)
+    ok, reason, message = services.try_check_in(ticket)
     return JsonResponse(
         {
             "ok": ok,
             "reason": reason,
             "message": message,
-            "full_name": order.full_name,
-            "quantity": order.quantity,
+            "full_name": ticket.order.full_name,
+            "quantity": ticket.order.quantity,
+            "checked_in_count": ticket.order.checked_in_count,
         }
     )
 
