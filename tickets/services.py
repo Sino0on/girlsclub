@@ -26,14 +26,21 @@ def generate_qr_code(ticket):
 def create_tickets(order):
     """Create order.quantity individual Ticket rows, each with its own
     QR — idempotent, so calling this twice (e.g. a retried webhook)
-    never issues duplicates. Returns the order's tickets."""
+    never issues duplicates. Returns the order's tickets.
+
+    The first ticket reuses order.qr_token instead of generating a new
+    one. order.qr_token is already a unique UUID assigned the moment
+    the order was created, so this loses nothing — and it means a QR
+    a buyer already has (emailed, saved, screenshotted) keeps scanning
+    correctly even if tickets get (re)created later, e.g. by
+    backfill_tickets after the Order.qr_image -> Ticket migration."""
     existing = list(order.tickets.all())
     if existing:
         return existing
 
     tickets = []
-    for _ in range(order.quantity):
-        ticket = Ticket(order=order)
+    for i in range(order.quantity):
+        ticket = Ticket(order=order, qr_token=order.qr_token) if i == 0 else Ticket(order=order)
         generate_qr_code(ticket)
         ticket.save()
         tickets.append(ticket)
