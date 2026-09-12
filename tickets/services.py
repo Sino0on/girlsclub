@@ -188,6 +188,42 @@ def reject_order(order_id):
     send_rejection_email(order)
 
 
+def resolve_ticket(token):
+    """Find the Ticket a scanned QR token should check in.
+
+    A direct Ticket.qr_token match is the normal case — every order's
+    first ticket reuses order.qr_token (see create_tickets), so this
+    is what matches for both new orders and already-backfilled legacy
+    ones.
+
+    If nothing matches, the token might still be an Order.qr_token
+    from before the Ticket model existed: those orders only ever had
+    that one QR printed/sent for the whole group, and never got a
+    Ticket row created for them. Rather than depending on someone
+    having run backfill_tickets before the doors open, create it right
+    here and flag the order as a legacy shared-QR group — so scanning
+    that old QR just works the first time, no manual step required.
+
+    Returns None if the token matches neither a Ticket nor a valid
+    Order.
+    """
+    ticket = Ticket.objects.select_related("order").filter(qr_token=token).first()
+    if ticket:
+        return ticket
+
+    order = Order.objects.filter(qr_token=token).first()
+    if not order or not order.is_valid_ticket:
+        return None
+
+    if not order.tickets.exists():
+        create_tickets(order)
+    if not order.is_legacy_shared_qr:
+        order.is_legacy_shared_qr = True
+        order.save(update_fields=["is_legacy_shared_qr"])
+
+    return order.tickets.filter(qr_token=token).first()
+
+
 def try_check_in(ticket):
     """Attempt to check one ticket in at the door. Used by both the
     manual /tickets/verify/ page and the camera scanner's JSON API —

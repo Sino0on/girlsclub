@@ -3,7 +3,7 @@ import json
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
-from django.http import HttpResponse, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
@@ -11,7 +11,7 @@ from django.views.decorators.http import require_POST
 
 from . import finik, freedompay, services
 from .forms import OrderForm, ReceiptUploadForm
-from .models import Order, PaymentInstructions, PaymentSettings, Ticket
+from .models import Order, PaymentInstructions, PaymentSettings
 
 # Gateways selectable from the admin (Настройки оплаты). Each module
 # exposes create_payment(order) -> redirect URL, and its own Error class.
@@ -82,7 +82,9 @@ def verify(request, token):
     own camera app) to see the ticket and mark it used by hand. The
     camera *scanner* page (below) is the faster way to do this all day —
     this page still works standalone as a fallback / for spot checks."""
-    ticket = get_object_or_404(Ticket, qr_token=token)
+    ticket = services.resolve_ticket(token)
+    if not ticket:
+        raise Http404("Билет не найден")
 
     if request.method == "POST":
         services.try_check_in(ticket)
@@ -103,7 +105,7 @@ def scanner(request):
 def scan_api(request, token):
     """JSON endpoint the scanner page calls after decoding each QR.
     Same green/red decision as `verify`, just machine-readable."""
-    ticket = Ticket.objects.select_related("order").filter(qr_token=token).first()
+    ticket = services.resolve_ticket(token)
     if not ticket:
         return JsonResponse({"ok": False, "reason": "not_found", "message": "Билет не найден"})
 
