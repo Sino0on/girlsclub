@@ -3,6 +3,7 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.html import format_html
 
+from . import services
 from .models import Order, PaymentInstructions, PaymentSettings, Ticket
 
 
@@ -75,6 +76,14 @@ class OrderAdmin(admin.ModelAdmin):
         "rejection_email_sent_at",
     )
     inlines = [TicketInline]
+    actions = ["mark_legacy_shared_qr"]
+
+    @admin.action(description="Пометить как заказ с общим QR на группу")
+    def mark_legacy_shared_qr(self, request, queryset):
+        for order in queryset:
+            services.create_tickets(order)  # no-op if tickets already exist
+        updated = queryset.update(is_legacy_shared_qr=True)
+        self.message_user(request, f"Помечено как общий QR на группу: {updated}.")
 
     def receipt_preview(self, obj):
         if not obj.receipt:
@@ -102,6 +111,12 @@ class TicketAdmin(admin.ModelAdmin):
     search_fields = ("qr_token", "order__full_name", "order__email")
     readonly_fields = ("order", "qr_token", "qr_preview", "checked_in_at")
     fields = ("order", "qr_token", "qr_preview", "checked_in_at")
+    actions = ["mark_not_checked_in"]
+
+    @admin.action(description="Сделать билет активным (сбросить отметку о сканировании)")
+    def mark_not_checked_in(self, request, queryset):
+        updated = queryset.update(checked_in_at=None)
+        self.message_user(request, f"Сброшено билетов: {updated}.")
 
     def qr_preview(self, obj):
         if obj.qr_image:
