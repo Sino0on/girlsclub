@@ -95,6 +95,21 @@ class Order(models.Model):
         "Токен заказа", default=uuid.uuid4, editable=False, unique=True
     )
 
+    # Orders placed before the Ticket model existed only ever had ONE
+    # QR physically printed/sent, covering the whole quantity — unlike
+    # today's orders, where every person in the group gets their own
+    # distinct QR. Set automatically by backfill_tickets for exactly
+    # the orders it repairs; never set for anything created after that.
+    is_legacy_shared_qr = models.BooleanField(
+        "Старый заказ с общим QR на группу",
+        default=False,
+        help_text=(
+            "Билет был выдан до введения отдельного QR на каждого "
+            "человека — сканирование единственного QR допускает сразу "
+            "всю группу (order.quantity), а не одного человека."
+        ),
+    )
+
     payment_id = models.CharField(
         "ID платежа у платёжного шлюза", max_length=100, blank=True
     )

@@ -21,6 +21,9 @@
       {{ order.full_name }}
       {% if order.quantity > 1 %}· в заказе {{ order.checked_in_count }} из {{ order.quantity }} использовано{% endif %}
     </p>
+    {% if order.is_legacy_shared_qr and order.quantity > 1 %}
+      <p class="checkout__note">Общий QR на группу — сканирование пропускает сразу всех {{ order.quantity }} человек.</p>
+    {% endif %}
     <p class="checkout__note">
       {{ order.email }} · {{ order.phone }}<br>
       Статус заказа: {{ order.get_status_display }}

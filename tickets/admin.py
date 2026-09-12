@@ -36,8 +36,9 @@ class OrderAdmin(admin.ModelAdmin):
         "status",
         "created_at",
         "checked_in_column",
+        "is_legacy_shared_qr",
     )
-    list_filter = ("payment_method", "status")
+    list_filter = ("payment_method", "status", "is_legacy_shared_qr")
     search_fields = ("full_name", "email", "phone", "qr_token", "payment_id", "tickets__qr_token")
     readonly_fields = (
         "qr_token",
@@ -62,6 +63,7 @@ class OrderAdmin(admin.ModelAdmin):
         "status",
         "receipt_preview",
         "qr_token",
+        "is_legacy_shared_qr",
         "payment_id",
         "telegram_chat_id",
         "telegram_message_id",

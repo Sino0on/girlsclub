@@ -206,12 +206,38 @@ def try_check_in(ticket):
     if not order.is_valid_ticket:
         return False, "not_issued", "Билет ещё не оформлен"
 
+    if order.is_legacy_shared_qr:
+        return _try_check_in_group(order)
+
     if ticket.is_checked_in:
         when = timezone.localtime(ticket.checked_in_at).strftime("%H:%M")
         return False, "used", f"Уже использован сегодня в {when}"
 
     ticket.checked_in_at = timezone.now()
     ticket.save(update_fields=["checked_in_at"])
+    return True, "ok", "Билет действителен"
+
+
+def _try_check_in_group(order):
+    """Legacy orders (see Order.is_legacy_shared_qr) only ever had ONE
+    QR physically handed to the buyer, covering the whole quantity —
+    unlike today's orders, where each Ticket row's QR was actually
+    distributed to a distinct person. So scanning that one QR must
+    admit the entire group in a single scan, not just the lone Ticket
+    row it happens to point at (which would otherwise silently leave
+    the rest of the group's tickets looking forever unused)."""
+    tickets = list(order.tickets.all())
+    if all(t.is_checked_in for t in tickets):
+        when = timezone.localtime(tickets[0].checked_in_at).strftime("%H:%M")
+        return False, "used", f"Уже использован сегодня в {when}"
+
+    now = timezone.now()
+    for t in tickets:
+        t.checked_in_at = now
+    Ticket.objects.bulk_update(tickets, ["checked_in_at"])
+
+    if order.quantity > 1:
+        return True, "ok", f"Билет действителен — пропустить всю группу ({order.quantity} чел.)"
     return True, "ok", "Билет действителен"
 
 
