@@ -1,36 +1,38 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head><meta charset="UTF-8"></head>
-<body style="margin:0;padding:0;background:#F5F0E6;font-family:Georgia,'Times New Roman',serif;color:#4F5B32;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F5F0E6;padding:32px 16px;">
+<body style="margin:0;padding:0;background:#2A1A17;font-family:Georgia,'Times New Roman',serif;color:#34251F;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#2A1A17;padding:32px 16px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background:#FFFDF8;border-radius:16px;padding:36px;max-width:480px;">
+        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background:#F4EADB;border:1px solid #C6A06A;border-radius:16px;padding:36px;max-width:480px;">
           <tr>
-            <td align="center" style="color:#D9828C;font-size:20px;padding-bottom:8px;">✦</td>
+            <td align="center" style="color:#A8804A;font-size:20px;padding-bottom:8px;">✦</td>
           </tr>
           <tr>
-            <td align="center" style="font-size:26px;color:#4F5B32;padding-bottom:4px;">FairyTale Picnic</td>
+            <td align="center" style="font-size:26px;color:#4A1726;padding-bottom:4px;">A Thousand and One Nights</td>
           </tr>
           <tr>
-            <td align="center" style="font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#6F7C45;padding-bottom:24px;">Girls Club &times; Ques</td>
+            <td align="center" style="font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#8C493C;padding-bottom:24px;">Girls Club &middot; Тысяча и одна ночь</td>
           </tr>
           <tr>
             <td style="font-size:16px;line-height:1.6;padding-bottom:16px;">
-              Дорогие феи, эльфы и волшебные создания! 🧚🏻‍♀️<br><br>
-              Ваш билет на <strong>FairyTale Picnic</strong> оформлен на имя
+              Дорогая, двери дворца открыты для тебя ✨<br><br>
+              Ваш билет на <strong>A Thousand and One Nights</strong> оформлен на имя
               <strong>{{ order.full_name }}</strong>.
             </td>
           </tr>
           <tr>
             <td style="font-size:15px;line-height:1.7;padding-bottom:20px;">
               <strong>Билетов:</strong> {{ order.quantity }}<br>
-              <strong>Дата:</strong> 13 сентября 2026<br>
-              <strong>Место:</strong> Event Garden, Ала-Арча, Бишкек
+              <strong>Дата:</strong> {{ event.event_date|date:"j E Y" }}<br>
+              <strong>Место:</strong> {{ event.venue }}<br>
+              <strong>Сбор гостей:</strong> {{ event.gathering_time|time:"H:i" }} · <strong>начало:</strong> {{ event.program_time|time:"H:i" }}
+              {% if event.deposit %}<br><span style="color:#8C493C;font-size:14px;">Депозит {{ event.deposit }} сом оплачивается на месте, в заведении, отдельно от билета.</span>{% endif %}
             </td>
           </tr>
           <tr>
-            <td align="center" style="font-size:14px;color:#6F7C45;padding:8px 0 8px;background:#F5F0E6;border-radius:8px;">
+            <td align="center" style="font-size:14px;color:#4A1726;padding:10px 12px;background:#E8D7BD;border-radius:8px;">
               {% if tickets|length > 1 %}
                 📎 К письму приложено {{ tickets|length }} QR-кодов отдельными файлами (PNG) — по одному на каждый билет, их можно передать разным людям.
               {% else %}
@@ -39,8 +41,8 @@
             </td>
           </tr>
           <tr>
-            <td align="center" style="font-size:14px;color:#D9828C;padding-top:16px;font-style:italic;">
-              До встречи в сказке ✨
+            <td align="center" style="font-size:15px;color:#8C493C;padding-top:18px;font-style:italic;">
+              Ваше место в этой истории уже ждёт вас
             </td>
           </tr>
         </table>

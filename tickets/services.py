@@ -10,6 +10,8 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils import timezone
 
+from event.models import EventSettings
+
 from .models import Order, Ticket
 
 
@@ -49,8 +51,8 @@ def create_tickets(order):
 
 def send_ticket_email(order):
     tickets = list(order.tickets.all())
-    context = {"order": order, "tickets": tickets}
-    subject = "Ваш билет на FairyTale Picnic" if len(tickets) == 1 else "Ваши билеты на FairyTale Picnic"
+    context = {"order": order, "tickets": tickets, "event": EventSettings.load()}
+    subject = "Ваш билет на A Thousand and One Nights" if len(tickets) == 1 else "Ваши билеты на A Thousand and One Nights"
     text_body = render_to_string("tickets/email/ticket_email.txt", context)
     html_body = render_to_string("tickets/email/ticket_email.html", context)
 
@@ -70,8 +72,8 @@ def send_ticket_email(order):
 
 
 def send_rejection_email(order):
-    subject = "Ваш билет на FairyTale Picnic аннулирован"
-    context = {"order": order}
+    subject = "Ваш билет на A Thousand and One Nights аннулирован"
+    context = {"order": order, "event": EventSettings.load()}
     text_body = render_to_string("tickets/email/rejection_email.txt", context)
     html_body = render_to_string("tickets/email/rejection_email.html", context)
 
@@ -94,7 +96,7 @@ def notify_moderators(order):
         return
 
     caption = (
-        "🎟 Новый заказ билетов FairyTale Picnic\n\n"
+        "🎟 Новый заказ билетов A Thousand and One Nights\n\n"
         f"ФИО: {order.full_name}\n"
         f"Email: {order.email}\n"
         f"Телефон: {order.phone}\n"
@@ -287,7 +289,7 @@ def send_tickets_to_telegram(order, telegram_id, pause=0.5):
     total = len(tickets)
     for i, ticket in enumerate(tickets, start=1):
         caption = (
-            "🎟 Ваш билет FairyTale Picnic\n\n"
+            "🎟 Ваш билет A Thousand and One Nights\n\n"
             f"{order.full_name}\n"
             f"Билет {i} из {total}\n\n"
             "Покажите этот QR-код на входе."

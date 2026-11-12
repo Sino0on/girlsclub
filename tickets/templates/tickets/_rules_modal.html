@@ -1,0 +1,22 @@
+<div class="modal" id="rules-modal" aria-hidden="true">
+  <div class="modal__overlay" id="rules-overlay"></div>
+  <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="rules-title">
+    <svg class="modal__flourish" viewBox="0 0 200 40" aria-hidden="true">
+      <path d="M0 20 C 40 0, 70 40, 100 20 C 130 0, 160 40, 200 20"/>
+    </svg>
+    <button type="button" class="modal__close" id="rules-close" aria-label="Закрыть">✕</button>
+    <h2 id="rules-title" class="modal__title">Правила мероприятия</h2>
+    <div class="modal__body">
+      <p>Чтобы эта ночь была волшебной для каждой гостьи, просим бережно отнестись к нескольким простым правилам:</p>
+      <ul>
+        <li>Билет именной и не подлежит передаче третьим лицам без согласования с организаторами.</li>
+        <li>Вход — по электронному билету: покажите QR-код из письма на входе в {{ EVENT.venue }}.</li>
+        {% if EVENT.deposit %}<li>Депозит {{ EVENT.deposit }} сом оплачивается на месте, в заведении, отдельно от стоимости билета.</li>{% endif %}
+        <li>Просим бережно относиться к интерьеру и декору заведения.</li>
+        <li>Возрастные ограничения и правила заведения уточняйте у организаторов.</li>
+        <li>Организаторы вправе отказать в проходе при отсутствии билета или нарушении правил заведения.</li>
+        <li>Билеты возврату и обмену не подлежат, если иное не согласовано с организаторами.</li>
+      </ul>
+    </div>
+  </div>
+</div>

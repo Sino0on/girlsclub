@@ -1,4 +1,7 @@
 from django.conf import settings
+from django.urls import reverse
+
+from .models import EventSettings
 
 
 def _format_phone(raw):
@@ -12,7 +15,12 @@ def _format_phone(raw):
 
 def site_settings(request):
     """Expose a few site-wide constants to every template."""
+    event = EventSettings.load()
     return {
-        "TICKET_PRICE_KGS": settings.TICKET_PRICE_KGS,
+        "EVENT": event,
+        # Price right now — switches automatically at event.price_switch_at.
+        "TICKET_PRICE_KGS": event.current_price(),
+        # Every "Купить билет" button points here.
+        "BUY_URL": event.buy_url or reverse("tickets:buy"),
         "CONTACT_PHONES": [_format_phone(p) for p in settings.CONTACT_PHONES],
     }

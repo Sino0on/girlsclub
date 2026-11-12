@@ -149,8 +149,8 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# --- Event / ticket config ---
-TICKET_PRICE_KGS = int(os.environ.get("TICKET_PRICE_KGS", "2000"))
+# Ticket prices (and the automatic early-bird -> regular switch) live in
+# the admin: «Настройки мероприятия» (event.EventSettings).
 
 # --- Contact numbers (WhatsApp) ---
 CONTACT_PHONES = [
@@ -177,7 +177,7 @@ FINIK_API_KEY = os.environ.get("FINIK_API_KEY", "")
 # back to real newlines here. See tickets/finik.py for the algorithm.
 FINIK_PRIVATE_KEY = os.environ.get("FINIK_PRIVATE_KEY", "").replace("\\n", "\n")
 FINIK_ACCOUNT_ID = os.environ.get("FINIK_ACCOUNT_ID", "")
-FINIK_QR_NAME = os.environ.get("FINIK_QR_NAME", "FairyTale Picnic")
+FINIK_QR_NAME = os.environ.get("FINIK_QR_NAME", "A Thousand and One Nights")
 
 # --- Email ---
 EMAIL_BACKEND = os.environ.get(
@@ -189,7 +189,7 @@ EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
 DEFAULT_FROM_EMAIL = os.environ.get(
-    "DEFAULT_FROM_EMAIL", "FairyTale Picnic <no-reply@example.com>"
+    "DEFAULT_FROM_EMAIL", "Girls Club <no-reply@example.com>"
 )
 
 # --- Telegram moderator bot ---

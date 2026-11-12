@@ -1,201 +1,263 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block body_class %}nights{% endblock %}
+
+{% block extra_head %}
+<link rel="preload" as="image" href="{% static 'img/nights/lanterns.jpg' %}">
+<script>
+  /* The gate opens once per visit — returning to the page in the same
+     session skips straight to the content. */
+  document.documentElement.classList.add("js");
+  try { if (sessionStorage.getItem("gateSeen")) document.documentElement.classList.add("gate-seen"); } catch (e) {}
+</script>
+{% endblock %}
+
 {% block body %}
 
-<!-- ======================================================
-     HERO — full-screen gate. Closed on load, then opens.
-     ====================================================== -->
-<section class="hero" id="hero">
+{# ---------- shared SVG pieces ---------- #}
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="goldStroke" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#E9D3A4"/>
+      <stop offset=".5" stop-color="#C6A06A"/>
+      <stop offset="1" stop-color="#8E6A3C"/>
+    </linearGradient>
+    {# one door leaf; the seam is at x=300, the right leaf is mirrored #}
+    <symbol id="gateLeaf" viewBox="0 0 300 800">
+      <g fill="none" stroke="url(#goldStroke)" stroke-linecap="round">
+        <rect x="16" y="16" width="300" height="768" stroke-width="2" opacity=".55"/>
+        <rect x="26" y="26" width="300" height="748" stroke-width=".8" opacity=".4"/>
+        <path d="M300 744 L54 744 L54 318 C54 218 150 186 226 146 C268 124 292 98 300 62" stroke-width="2.4"/>
+        <path d="M300 728 L70 728 L70 324 C70 232 162 202 236 162 C274 141 294 116 300 92" stroke-width="1" opacity=".7"/>
+        <path d="M300 150 C 262 196, 196 222, 150 262 C 118 290, 104 330, 104 372" stroke-width=".8" opacity=".45"/>
+        <circle cx="300" cy="420" r="104" stroke-width="1" opacity=".5" stroke-dasharray="2 7"/>
+        <circle cx="300" cy="420" r="90" stroke-width="1.6"/>
+        <rect x="236" y="356" width="128" height="128" stroke-width="1.8"/>
+        <rect x="236" y="356" width="128" height="128" stroke-width="1.8" transform="rotate(45 300 420)"/>
+        <circle cx="300" cy="420" r="38" stroke-width="1" opacity=".8"/>
+        <path d="M70 640 L230 640" stroke-width=".8" opacity=".5"/>
+        <circle cx="266" cy="596" r="17" stroke-width="2.6"/>
+        <circle cx="266" cy="574" r="5" stroke-width="2"/>
+      </g>
+      <g fill="#C6A06A" opacity=".75">
+        <circle cx="38" cy="80" r="3"/><circle cx="38" cy="200" r="3"/><circle cx="38" cy="320" r="3"/>
+        <circle cx="38" cy="440" r="3"/><circle cx="38" cy="560" r="3"/><circle cx="38" cy="680" r="3"/>
+        <circle cx="300" cy="420" r="5"/>
+      </g>
+    </symbol>
+    <symbol id="ornament" viewBox="0 0 220 24">
+      <g fill="none" stroke="currentColor" stroke-linecap="round">
+        <path d="M2 12 H82 M138 12 H218" stroke-width=".9"/>
+        <path d="M110 2 L120 12 L110 22 L100 12 Z" stroke-width="1.2"/>
+        <path d="M88 12 C94 6 100 8 100 12 M132 12 C126 6 120 8 120 12" stroke-width=".9"/>
+      </g>
+      <circle cx="110" cy="12" r="2" fill="currentColor"/>
+    </symbol>
+  </defs>
+</svg>
 
-  <div class="hero__world" aria-hidden="true">
-    <div class="hero__photo" style="background-image:url('{% static "img/gate-bg.jpg" %}')"></div>
-    <div class="hero__grade"></div>
-    <div class="hero__vignette"></div>
-    <div class="hero__glow"></div>
-  </div>
+{% comment %} ======================================================
+   GATE — closed palace doors over the whole screen on entry
+   ====================================================== {% endcomment %}
+<div class="gate" id="gate" aria-hidden="true">
+  <div class="gate__glow"></div>
+  <div class="gate__leaf gate__leaf--l"><svg preserveAspectRatio="xMaxYMid slice"><use href="#gateLeaf"/></svg></div>
+  <div class="gate__leaf gate__leaf--r"><svg preserveAspectRatio="xMaxYMid slice"><use href="#gateLeaf"/></svg></div>
+  <p class="gate__hint">Girls Club приглашает…</p>
+</div>
 
-  <div class="hero__fog" aria-hidden="true">
-    <span class="fog__layer fog__layer--1"></span>
-    <span class="fog__layer fog__layer--2"></span>
-    <span class="fog__layer fog__layer--3"></span>
-  </div>
+{% comment %} ======================================================
+   1. HERO — everything needed to buy is on the first screen
+   ====================================================== {% endcomment %}
+<header class="hero" id="top">
+  <div class="hero__bg" style="background-image:url('{% static "img/nights/lanterns.jpg" %}')" aria-hidden="true"></div>
+  <div class="hero__shade" aria-hidden="true"></div>
+  <canvas class="hero__dust" id="dust" aria-hidden="true"></canvas>
+  <span class="hero__arabic" aria-hidden="true" lang="ar">ألف ليلة وليلة</span>
 
-  <div class="hero__particles" id="heroParticles" aria-hidden="true"></div>
+  <div class="hero__inner">
+    <p class="hero__eyebrow hero-in" style="--d:0">Girls Club presents</p>
+    <h1 class="hero__title hero-in" style="--d:1">
+      <span class="sr-only">Girls Club — </span>A Thousand<br>and One Nights
+    </h1>
+    <p class="hero__script hero-in" style="--d:2">Тысяча и одна ночь</p>
+    <svg class="ornament hero-in" style="--d:2"><use href="#ornament"/></svg>
 
-  <svg class="butterfly butterfly--1" viewBox="0 0 60 40" aria-hidden="true">
-    <g class="butterfly__wings">
-      <path class="butterfly__wing butterfly__wing--l" d="M28 20 C 10 -6, -14 2, -6 20 C -14 38, 10 46, 28 20 Z"/>
-      <path class="butterfly__wing butterfly__wing--r" d="M32 20 C 50 -6, 74 2, 66 20 C 74 38, 50 46, 32 20 Z"/>
-    </g>
-    <line class="butterfly__body" x1="30" y1="10" x2="30" y2="30"/>
-  </svg>
-  <svg class="butterfly butterfly--2" viewBox="0 0 60 40" aria-hidden="true">
-    <g class="butterfly__wings">
-      <path class="butterfly__wing butterfly__wing--l" d="M28 20 C 10 -6, -14 2, -6 20 C -14 38, 10 46, 28 20 Z"/>
-      <path class="butterfly__wing butterfly__wing--r" d="M32 20 C 50 -6, 74 2, 66 20 C 74 38, 50 46, 32 20 Z"/>
-    </g>
-    <line class="butterfly__body" x1="30" y1="10" x2="30" y2="30"/>
-  </svg>
+    <dl class="facts hero-in" style="--d:3">
+      <div class="facts__item"><dt>Дата</dt><dd>{{ EVENT.event_date|date:"j E Y" }}</dd></div>
+      <div class="facts__item"><dt>Место</dt><dd>{{ EVENT.venue }}</dd></div>
+      <div class="facts__item"><dt>Сбор гостей</dt><dd>{{ EVENT.gathering_time|time:"H:i" }}</dd></div>
+      <div class="facts__item"><dt>Начало программы</dt><dd>{{ EVENT.program_time|time:"H:i" }}</dd></div>
+    </dl>
 
-  <!-- the gate itself fills the entire screen -->
-  <div class="hero__doors" id="heroDoors">
-    <div class="hdoor hdoor--left">
-      <div class="hdoor__texture" style="background-image:url('{% static "img/door-texture.jpg" %}')"></div>
-      <div class="hdoor__tint"></div>
-      <svg class="hdoor__art" viewBox="0 0 100 300" preserveAspectRatio="none" aria-hidden="true">
-        <path class="hdoor__lattice" d="M92 0 C 40 30, 65 70, 25 105 C -5 130, 35 165, 12 200 C -5 225, 30 250, 8 280 C 0 292, 15 300, 5 300"/>
-        <path class="hdoor__lattice" d="M62 0 C 95 35, 55 75, 88 115 C 112 145, 68 180, 96 215 C 112 235, 82 260, 100 285"/>
-        <path class="hdoor__lattice hdoor__lattice--thin" d="M35 0 C 55 20, 20 45, 45 70 C 65 90, 30 115, 55 140 C 72 158, 45 180, 62 200 C 75 215, 52 235, 68 255 C 78 268, 60 285, 72 300"/>
-        <circle class="hdoor__stud" cx="76" cy="38" r="2.6"/>
-        <circle class="hdoor__stud" cx="20" cy="80" r="2.6"/>
-        <circle class="hdoor__stud" cx="70" cy="130" r="2.6"/>
-        <circle class="hdoor__stud" cx="14" cy="175" r="2.6"/>
-        <circle class="hdoor__stud" cx="66" cy="222" r="2.6"/>
-        <circle class="hdoor__stud" cx="24" cy="265" r="2.6"/>
-      </svg>
+    <div class="ticket hero-in" style="--d:4">
+      {% include "event/_price.html" %}
+      <a href="{{ BUY_URL }}" class="buy-button" id="heroBuy"><span>Купить билет</span></a>
     </div>
-    <div class="hdoor hdoor--right">
-      <div class="hdoor__texture" style="background-image:url('{% static "img/door-texture.jpg" %}')"></div>
-      <div class="hdoor__tint"></div>
-      <svg class="hdoor__art" viewBox="0 0 100 300" preserveAspectRatio="none" aria-hidden="true">
-        <path class="hdoor__lattice" d="M8 0 C 60 30, 35 70, 75 105 C 105 130, 65 165, 88 200 C 105 225, 70 250, 92 280 C 100 292, 85 300, 95 300"/>
-        <path class="hdoor__lattice" d="M38 0 C 5 35, 45 75, 12 115 C -12 145, 32 180, 4 215 C -12 235, 18 260, 0 285"/>
-        <path class="hdoor__lattice hdoor__lattice--thin" d="M65 0 C 45 20, 80 45, 55 70 C 35 90, 70 115, 45 140 C 28 158, 55 180, 38 200 C 25 215, 48 235, 32 255 C 22 268, 40 285, 28 300"/>
-        <circle class="hdoor__stud" cx="24" cy="38" r="2.6"/>
-        <circle class="hdoor__stud" cx="80" cy="80" r="2.6"/>
-        <circle class="hdoor__stud" cx="30" cy="130" r="2.6"/>
-        <circle class="hdoor__stud" cx="86" cy="175" r="2.6"/>
-        <circle class="hdoor__stud" cx="34" cy="222" r="2.6"/>
-        <circle class="hdoor__stud" cx="76" cy="265" r="2.6"/>
-      </svg>
-    </div>
-    <div class="hero__seam" aria-hidden="true"></div>
+    {% if EVENT.deposit %}
+    <p class="deposit hero-in" style="--d:5">
+      <span class="deposit__sum">+ депозит {{ EVENT.deposit }} сом</span>
+      <span class="deposit__note">не входит в билет · оплачивается на месте, в заведении</span>
+    </p>
+    {% endif %}
   </div>
 
-  <svg class="hero__crest" viewBox="0 0 400 140" aria-hidden="true">
-    <path d="M200 30 C 150 30, 130 90, 90 90 C 50 90, 25 55, 25 55 M200 30 C 250 30, 270 90, 310 90 C 350 90, 375 55, 375 55"/>
-    <path d="M200 30 C 175 30, 150 15, 130 15 M200 30 C 225 30, 250 15, 270 15"/>
-    <circle cx="200" cy="36" r="8"/>
-    <path d="M200 44 C 185 75, 150 100, 120 112 M200 44 C 215 75, 250 100, 280 112"/>
-  </svg>
+  <a class="hero__scroll" href="#club" aria-label="Листайте вниз">
+    <span>Откройте двери в свою сказку</span>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v14M5 12l7 7 7-7"/></svg>
+  </a>
+</header>
 
-  <div class="hero__content">
-    <p class="hero__eyebrow">13 сентября 2026 · Event Garden · Ала-Арча</p>
-    <h1 class="hero__title">FairyTale Picnic</h1>
-    <p class="hero__brands">Girls&nbsp;Club <span class="x">×</span> Ques</p>
-  </div>
+<main>
 
-  <button type="button" class="hero__scroll" id="scrollCue" aria-label="Листайте вниз">
-    <span>Листайте вниз</span>
-    <svg viewBox="0 0 24 24"><path d="M12 4v14M5 12l7 7 7-7"/></svg>
-  </button>
-</section>
-
-<!-- ======================================================
-     INVITATION
-     ====================================================== -->
-<section class="section invite-section" id="invitation">
-  <figure class="invite-section__photo reveal reveal--left">
-    <img src="{% static 'img/IMG_4934.JPG.jpeg' %}" alt="Сервированный сказочный пикник с пионами и свечами" loading="lazy">
-  </figure>
-  <div class="invite-section__text reveal reveal--right">
-    <p class="invite-section__greeting">
-      Дорогие феи, эльфы и волшебные создания города Бишкек! 🧚🏻‍♀️
-    </p>
-    <p class="invite-section__lede">
-      Мы приглашаем вас в наш FairyTale&nbsp;Picnic — один день,
-      когда реальность встречается со сказкой.
-    </p>
-    <div class="invite-section__divider" aria-hidden="true">✦</div>
-    <p class="invite-section__note">
-      Наденьте самый сказочный наряд, захватите хорошее настроение —
-      обо всём остальном позаботимся мы.
-    </p>
-  </div>
-</section>
-
-
-<!-- ======================================================
-     TIME & PLACE
-     ====================================================== -->
-<section class="section when-section" id="when">
-  <figure class="when-section__photo reveal reveal--left">
-    <img src="{% static 'img/IMG_4924.JPG.jpeg' %}" alt="Пикник в саду с корзиной и цветами" loading="lazy">
-  </figure>
-
-  <div class="when-card reveal reveal--right">
-    <svg class="when-card__seal" viewBox="0 0 100 100" aria-hidden="true">
-      <circle cx="50" cy="50" r="46"/>
-      <circle cx="50" cy="50" r="38"/>
-      <text x="50" y="59" text-anchor="middle">FTP</text>
-    </svg>
-    <p class="section__eyebrow">Время и место</p>
-    <p class="when-card__date">13 сентября 2026</p>
-    <p class="when-card__time">12:00 · до самого заката</p>
-    <div class="when-card__divider" aria-hidden="true">✦</div>
-    <p class="when-card__venue">Event Garden</p>
-    <p class="when-card__address">Ала-Арча, Бишкек</p>
-    <a
-      class="when-card__map"
-      href="https://www.google.com/maps/search/?api=1&query=Ala-Archa+Bishkek"
-      target="_blank"
-      rel="noopener noreferrer"
-    >Посмотреть на карте →</a>
-  </div>
-</section>
-
-<!-- ======================================================
-     CREATIVE ZONES / MASTER-CLASSES
-     ====================================================== -->
-<section class="section invite-section" id="creative">
-  <figure class="invite-section__photo reveal reveal--left">
-    <img src="{% static 'img/IMG_3411.JPG.jpeg' %}" alt="Творческие мастер-классы на FairyTale Picnic" loading="lazy">
-  </figure>
-  <div class="invite-section__text reveal reveal--right">
-    <p class="invite-section__greeting">
-      На FairyTale&nbsp;Picnic вас ждут различные творческие зоны и мастер-классы,
-      где можно будет не только окунуться в сказочную атмосферу, но и создать
-      что-то своими руками.
-    </p>
-    <p class="invite-section__lede">
-      Мы собрали для вас самые интересные творческие проекты Бишкека, которые
-      подготовили особенные активности и изделия по приятным ценам ✨
-    </p>
-    <div class="invite-section__divider" aria-hidden="true">✦</div>
-    <p class="invite-section__note">
-      Обратите внимание: участие в творческих зонах оплачивается отдельно и
-      не входит в стоимость билета.
-    </p>
-  </div>
-</section>
-
-<!-- ======================================================
-     COUNTDOWN
-     ====================================================== -->
-<section class="section countdown-section" id="countdown-section">
-  <div class="countdown-section__content reveal">
-    <p class="section__eyebrow">До встречи в сказке</p>
-    <h2 class="section__title">Обратный отсчёт</h2>
-    <div class="countdown" id="countdown" aria-live="polite">
-      <div class="countdown__box"><span id="cd-days">00</span><small>дней</small></div>
-      <div class="countdown__box"><span id="cd-hours">00</span><small>часов</small></div>
-      <div class="countdown__box"><span id="cd-mins">00</span><small>минут</small></div>
-      <div class="countdown__box"><span id="cd-secs">00</span><small>секунд</small></div>
-    </div>
-  </div>
-</section>
-
-<!-- ======================================================
-     FAQ
-     ====================================================== -->
-{% if faqs %}
-<section class="section faq-section" id="faq">
+{% comment %} ======================================================
+   2. ABOUT GIRLS CLUB
+   ====================================================== {% endcomment %}
+<section class="section club" id="club">
   <div class="section__head reveal">
-    <p class="section__eyebrow">Вопросы и ответы</p>
-    <h2 class="section__title">FAQ</h2>
+    <p class="eyebrow">О нас</p>
+    <h2 class="title">Girls Club</h2>
+    <svg class="ornament"><use href="#ornament"/></svg>
   </div>
-  <div class="faq-list reveal">
+  <div class="club__grid">
+    <div class="club__text reveal">
+      <p class="lede">Girls Club — это пространство, где девушки встречаются, знакомятся, вдохновляют друг друга и&nbsp;создают воспоминания, которые хочется хранить.</p>
+      <p>Мы создаём не просто мероприятия, а целые маленькие миры, в которых каждая девушка может почувствовать себя главной героиней собственной истории.</p>
+      <p class="whisper">Каждая наша встреча — новая история. И на этот раз мы приглашаем вас в мир тысячи и одной ночи…</p>
+    </div>
+    <div class="club__photos">
+      <figure class="arch reveal reveal--rise" style="--d:0"><img src="{% static 'img/nights/club-1.jpg' %}" alt="Прошлое мероприятие Girls Club" loading="lazy" width="700" height="1050"></figure>
+      <figure class="arch reveal reveal--rise" style="--d:1"><img src="{% static 'img/nights/club-2.jpg' %}" alt="Гостьи Girls Club на празднике" loading="lazy" width="700" height="1244"></figure>
+      <figure class="arch reveal reveal--rise" style="--d:2"><img src="{% static 'img/nights/club-3.jpg' %}" alt="Атмосфера вечера Girls Club" loading="lazy" width="700" height="968"></figure>
+    </div>
+  </div>
+</section>
+
+{% comment %} ======================================================
+   3. ABOUT THE EVENT
+   ====================================================== {% endcomment %}
+<section class="section story" id="story">
+  <div class="story__grid">
+    <figure class="story__photo arch arch--tall reveal reveal--rise">
+      <img src="{% static 'img/nights/gold-hands.jpg' %}" alt="Руки в золотых украшениях в тёплом свете" loading="lazy" width="736" height="736">
+    </figure>
+    <div class="story__text">
+      <p class="eyebrow reveal">О вечере</p>
+      <h2 class="title reveal">A Thousand<br>and One Nights</h2>
+      <p class="story__quote reveal">Говорят, самые красивые истории начинаются после захода солнца…</p>
+      <p class="reveal">{{ EVENT.event_date|date:"j E" }} мы откроем двери в мир, где золото переливается в свете фонарей, ткани струятся словно песок, музыка уносит далеко за пределы привычного мира, а каждая девушка становится героиней собственной восточной сказки.</p>
+      <p class="reveal">В эту ночь вас ждут восточная эстетика, музыка, танцы, красивые образы, неожиданные сюрпризы и немного волшебства.</p>
+      <p class="whisper reveal">Позвольте себе стать частью истории, которую невозможно рассказать за одну ночь…</p>
+    </div>
+  </div>
+</section>
+
+{% comment %} ======================================================
+   4. PROGRAM — «Что тебя ждёт?»
+   ====================================================== {% endcomment %}
+{% if program %}
+<section class="section program" id="program">
+  <div class="section__head reveal">
+    <p class="eyebrow">Программа</p>
+    <h2 class="title">Что тебя ждёт?</h2>
+    <svg class="ornament"><use href="#ornament"/></svg>
+  </div>
+  <ol class="program__list">
+    {% for item in program %}
+    <li class="pcard reveal reveal--rise" style="--d:{{ forloop.counter0 }}">
+      <figure class="pcard__img arch">
+        {% if item.image %}
+          <img src="{{ item.image.url }}" alt="" loading="lazy">
+        {% elif item.static_image %}
+          <img src="{% static item.static_image %}" alt="" loading="lazy">
+        {% endif %}
+      </figure>
+      <span class="pcard__num" aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</span>
+      <h3 class="pcard__title">{{ item.title }}</h3>
+      <p class="pcard__desc">{{ item.description }}</p>
+    </li>
+    {% endfor %}
+  </ol>
+  <p class="program__hint" aria-hidden="true">листайте &rarr;</p>
+</section>
+{% endif %}
+
+{% comment %} ======================================================
+   5. DRESS CODE
+   ====================================================== {% endcomment %}
+<section class="section dress" id="dresscode">
+  <div class="dress__grid">
+    <div class="dress__text">
+      <p class="eyebrow reveal">Dress code</p>
+      <h2 class="title reveal">Dress like an<br>Arabian Princess</h2>
+      <p class="lede reveal">В эту ночь мы хотим видеть вас во всей красе. Позвольте себе немного роскоши, смелости и восточного очарования.</p>
+      <p class="reveal">Шёлк, золото, украшения, струящиеся ткани, выразительный макияж и немного волшебства — создайте образ, достойный восточной принцессы.</p>
+      <p class="whisper reveal">Пусть в эту ночь каждая из вас почувствует себя настоящей героиней арабской сказки.</p>
+      {% if EVENT.dresscode_link %}
+      <a class="ghost-button reveal" href="{{ EVENT.dresscode_link }}" target="_blank" rel="noopener noreferrer">Посмотреть dress code</a>
+      {% endif %}
+    </div>
+    <div class="dress__collage">
+      <figure class="arch dress__a reveal reveal--rise" style="--d:0"><img src="{% static 'img/nights/dress-hands.jpg' %}" alt="Золотые монеты и украшения на лице" loading="lazy" width="900" height="1202"></figure>
+      <figure class="arch dress__b reveal reveal--rise" style="--d:1"><img src="{% static 'img/nights/veil-coins.jpg' %}" alt="Взгляд из-под вуали с монетами" loading="lazy" width="330" height="587"></figure>
+      <figure class="dress__c reveal reveal--rise" style="--d:2"><img src="{% static 'img/nights/perfume.jpg' %}" alt="Восточные парфюмерные флаконы" loading="lazy" width="900" height="538"></figure>
+    </div>
+  </div>
+</section>
+
+{% comment %} ======================================================
+   6. MAIN PRIZE — VIP TRIP TO DUBAI
+   ====================================================== {% endcomment %}
+<section class="prize{% if EVENT.prize_image %} prize--photo{% endif %}" id="prize">
+  {% if EVENT.prize_image %}
+    <div class="prize__photo" style="background-image:url('{{ EVENT.prize_image.url }}')" aria-hidden="true"></div>
+  {% endif %}
+  <div class="prize__sun" aria-hidden="true"></div>
+  <div class="prize__inner">
+    <p class="prize__label reveal">Главный приз вечера</p>
+    <h2 class="prize__title reveal">
+      <span class="prize__vip">VIP Trip</span>
+      <span class="prize__to">to</span>
+      <span class="prize__dubai">Dubai</span>
+    </h2>
+    <p class="prize__lead reveal">Победительница конкурса на лучший восточный образ получит особенный подарок — VIP-путешествие в Дубай.</p>
+    <div class="prize__text reveal">
+      <p>А теперь представьте, что ваша восточная сказка не закончится с наступлением утра…</p>
+      <p>Ведь обладательницу самого роскошного образа этой ночи ждёт особенный подарок — <strong>VIP-тур в Дубай!</strong></p>
+      <p>Так что, дорогая, самое время продумать свой образ. Кто знает, возможно, именно тебя ждёт следующее путешествие?</p>
+    </div>
+    {% if EVENT.prize_terms %}<p class="prize__terms reveal">{{ EVENT.prize_terms|linebreaksbr }}</p>{% endif %}
+  </div>
+  {% if not EVENT.prize_image %}
+  <svg class="prize__skyline" viewBox="0 0 1200 260" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="skyline" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#3E1420"/>
+        <stop offset=".75" stop-color="#1C0F10"/>
+      </linearGradient>
+    </defs>
+    <path fill="url(#skyline)" d="M0 260 V206 H38 V184 H56 V170 H70 V196 H92 V150 H104 V140 H112 V150 H124 V200 H150 V176 H176 V214 H204 V160 C204 150 214 140 226 140 C238 140 248 150 248 160 V214 H272 V186 H290 V168 H306 V198 H332 V120 H340 V104 H348 V120 H356 V204 H380 V174 H396 V156 H412 V200 H440 V182 H462 V148 L470 132 L478 148 V202 H506 V168 H520 V150 H536 V196 H562 V100 H570 V78 H578 V60 L582 30 L584 2 L586 30 L590 60 V78 H598 V100 H606 V196 H632 V160 H652 V138 H668 V194 H690 V172 H712 V190 C712 120 744 96 780 92 C772 110 768 150 770 192 H798 V164 H818 V186 H842 V142 H858 V128 H874 V142 H890 V200 H918 V176 H944 V156 H962 V198 H990 V182 H1014 V150 H1028 V138 H1044 V150 H1058 V204 H1086 V180 H1112 V196 H1140 V172 H1162 V200 H1200 V260 Z"/>
+    <g fill="#E9C98E" opacity=".7">
+      <rect x="582" y="70" width="2" height="3"/><rect x="582" y="96" width="2" height="3"/><rect x="574" y="122" width="2" height="3"/>
+      <rect x="590" y="140" width="2" height="3"/><rect x="342" y="134" width="2" height="3"/><rect x="866" y="150" width="2" height="3"/>
+      <rect x="470" y="160" width="2" height="3"/><rect x="1036" y="164" width="2" height="3"/><rect x="214" y="170" width="2" height="3"/>
+    </g>
+  </svg>
+  {% endif %}
+</section>
+
+{% comment %} ======================================================
+   7. FAQ
+   ====================================================== {% endcomment %}
+{% if faqs %}
+<section class="section faq" id="faq">
+  <div class="section__head reveal">
+    <p class="eyebrow">Вопросы и ответы</p>
+    <h2 class="title">FAQ</h2>
+    <svg class="ornament"><use href="#ornament"/></svg>
+  </div>
+  <div class="faq__list reveal">
     {% for faq in faqs %}
     <details class="faq-item">
       <summary class="faq-item__q">{{ faq.question }}</summary>
@@ -206,62 +268,73 @@
 </section>
 {% endif %}
 
-<!-- ======================================================
-     RSVP / TICKET
-     ====================================================== -->
-<section class="section rsvp-section" id="rsvp">
-  <div class="rsvp-card reveal">
-    <div class="rsvp-card__divider" aria-hidden="true">✦</div>
-    <h2 class="rsvp-card__title">FairyTale Picnic</h2>
-    <p class="rsvp-card__brands">Girls&nbsp;Club <span class="x">×</span> Ques</p>
-    <p class="rsvp-card__price">{{ TICKET_PRICE_KGS }} сом</p>
+{% comment %} ======================================================
+   8. PARTNERS
+   ====================================================== {% endcomment %}
+<section class="section partners" id="partners">
+  <div class="section__head reveal">
+    <p class="eyebrow">С нами в эту ночь</p>
+    <h2 class="title">Our Partners</h2>
+    <svg class="ornament"><use href="#ornament"/></svg>
+  </div>
+  {% if partners %}
+  <ul class="partners__grid reveal">
+    {% for p in partners %}
+    <li class="partners__item">
+      {% if p.url %}<a href="{{ p.url }}" target="_blank" rel="noopener noreferrer">{% endif %}
+        <img src="{{ p.logo.url }}" alt="{{ p.name }}" loading="lazy">
+      {% if p.url %}</a>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="partners__soon reveal">Скоро здесь появятся те, кто вместе с нами откроет двери этой ночи.</p>
+  {% endif %}
+</section>
 
-    <label class="agree">
-      <input type="checkbox" id="agree-checkbox" class="agree__input">
-      <span class="agree__box" aria-hidden="true"></span>
-      <span class="agree__label">
-        Я ознакомлен(а) с
-        <button type="button" id="rules-link" class="agree__link">правилами мероприятия</button>
-      </span>
-    </label>
-
-    <a
-      href="{% url 'tickets:buy' %}"
-      id="ticket-button"
-      class="buy-button"
-      aria-disabled="true"
-    >
-      <span>Купить билет</span>
-    </a>
-
-    <p class="rsvp-card__footer">Girls&nbsp;Club × Ques — организаторы FairyTale&nbsp;Picnic</p>
+{% comment %} ======================================================
+   9. FINAL INVITATION
+   ====================================================== {% endcomment %}
+<section class="finale" id="tickets">
+  <div class="finale__bg" style="background-image:url('{% static "img/nights/palace-dance.jpg" %}')" aria-hidden="true"></div>
+  <div class="finale__card reveal">
+    <svg class="ornament"><use href="#ornament"/></svg>
+    <p class="finale__lede">Некоторые истории созданы для того, чтобы их прожить…</p>
+    <p class="finale__text">{{ EVENT.event_date|date:"j E" }} двери нашего дворца откроются для вас. Осталось только решить, готовы&nbsp;ли вы стать частью этой сказки?</p>
+    <ul class="finale__facts">
+      <li>{{ EVENT.event_date|date:"j E Y" }}</li>
+      <li>{{ EVENT.venue }}</li>
+      <li>Сбор гостей в {{ EVENT.gathering_time|time:"H:i" }}</li>
+    </ul>
+    <div class="ticket ticket--final">
+      {% include "event/_price.html" %}
+      <a href="{{ BUY_URL }}" class="buy-button buy-button--big" id="finalBuy"><span>Купить билет</span></a>
+    </div>
+    {% if EVENT.deposit %}
+    <p class="deposit">
+      <span class="deposit__sum">+ депозит {{ EVENT.deposit }} сом</span>
+      <span class="deposit__note">не входит в билет · оплачивается на месте, в заведении</span>
+    </p>
+    {% endif %}
+    <p class="finale__whisper">Ваше место в этой истории уже ждёт вас</p>
   </div>
 </section>
 
-<!-- ======================================================
-     RULES MODAL
-     ====================================================== -->
-<div class="modal" id="rules-modal" aria-hidden="true">
-  <div class="modal__overlay" id="rules-overlay"></div>
-  <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="rules-title">
-    <svg class="modal__flourish" viewBox="0 0 200 40" aria-hidden="true">
-      <path d="M0 20 C 40 0, 70 40, 100 20 C 130 0, 160 40, 200 20"/>
-    </svg>
-    <button type="button" class="modal__close" id="rules-close" aria-label="Закрыть">✕</button>
-    <h2 id="rules-title" class="modal__title">Правила мероприятия</h2>
-    <div class="modal__body">
-      <p>Чтобы сказка была доброй ко всем, просим гостей FairyTale Picnic бережно отнестись к нескольким простым правилам:</p>
-      <ul>
-        <li>Билет именной и не подлежит передаче третьим лицам без согласования с организаторами.</li>
-        <li>Вход на территорию Event Garden — по электронному билету и предъявлению QR-кода из письма.</li>
-        <li>Просим бережно относиться к саду, растениям и декору — это общая волшебная территория.</li>
-        <li>Возрастные ограничения и правила площадки уточняйте у организаторов.</li>
-        <li>Организаторы вправе отказать в проходе при отсутствии билета или нарушении правил площадки.</li>
-        <li>Билеты, приобретённые на мероприятие, возврату и обмену не подлежат, если иное не согласовано с организаторами.</li>
-      </ul>
-      <p>Вопросы — в разделе FAQ выше или через организаторов Girls Club × Ques.</p>
-    </div>
+</main>
+
+<footer class="footer">
+  <p class="footer__brand">Girls Club</p>
+  <p class="footer__line">A Thousand and One Nights · {{ EVENT.event_date|date:"j E Y" }}</p>
+  {% if EVENT.instagram_url %}<a class="footer__link" href="{{ EVENT.instagram_url }}" target="_blank" rel="noopener noreferrer">Instagram</a>{% endif %}
+</footer>
+
+{# Mobile: pinned buy bar, appears once the hero button scrolls away #}
+<div class="buybar" id="buybar">
+  <div class="buybar__price">
+    <strong>{{ TICKET_PRICE_KGS }} сом</strong>
+    <span>{% if EVENT.is_early %}до {{ EVENT.early_until|date:"j E" }}{% else %}билет{% endif %}</span>
   </div>
+  <a href="{{ BUY_URL }}" class="buy-button buy-button--small"><span>Купить билет</span></a>
 </div>
 
 {% endblock %}

@@ -9,6 +9,8 @@ from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
+from event.models import EventSettings
+
 from . import finik, freedompay, services
 from .forms import OrderForm, ReceiptUploadForm
 from .models import Order, PaymentInstructions, PaymentSettings
@@ -26,7 +28,7 @@ def buy(request):
         form = OrderForm(request.POST)
         if form.is_valid():
             order = form.save(commit=False)
-            order.amount = order.quantity * settings.TICKET_PRICE_KGS
+            order.amount = order.quantity * EventSettings.load().current_price()
             method = PaymentSettings.load().active_method
             order.payment_method = method
 

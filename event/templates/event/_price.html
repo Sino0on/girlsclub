@@ -1,0 +1,15 @@
+{% comment %} Ticket price block. Which tier is active is decided server-side on
+   every request, so the switch on EVENT.price_switch_at is automatic. {% endcomment %}
+<div class="price">
+  <p class="price__label">Стоимость билета</p>
+  <p class="price__now"><span>{{ TICKET_PRICE_KGS }}</span> сом</p>
+  <ul class="price__tiers">
+    <li class="{% if EVENT.is_early %}is-active{% else %}is-past{% endif %}">
+      <span>до {{ EVENT.early_until|date:"j E" }}</span><b>{{ EVENT.price_early }} сом</b>
+    </li>
+    <li class="{% if not EVENT.is_early %}is-active{% endif %}">
+      <span>после {{ EVENT.early_until|date:"j E" }}</span><b>{{ EVENT.price_late }} сом</b>
+    </li>
+  </ul>
+  {% if EVENT.seats_limited %}<p class="price__limit">Количество мест ограничено</p>{% endif %}
+</div>

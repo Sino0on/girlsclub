@@ -1,196 +1,144 @@
 (function () {
   "use strict";
 
-  var hero = document.getElementById("hero");
-  var particlesLayer = document.getElementById("heroParticles");
-  var scrollCue = document.getElementById("scrollCue");
-  var checkbox = document.getElementById("agree-checkbox");
-  var ticketButton = document.getElementById("ticket-button");
-  var rulesLink = document.getElementById("rules-link");
-  var rulesModal = document.getElementById("rules-modal");
-  var rulesClose = document.getElementById("rules-close");
-  var rulesOverlay = document.getElementById("rules-overlay");
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  var prefersReducedMotion = window.matchMedia(
-    "(prefers-reduced-motion: reduce)"
-  ).matches;
+  /* ---------------- gate ----------------
+     The opening itself is a CSS animation (works without JS). Here we
+     only let a tap skip the wait, and remember the visit so the gate
+     doesn't replay on every reload. */
 
-  /* ---------------- gate opening ---------------- */
-
-  function openGate() {
-    hero.classList.add("is-open");
-  }
-
-  if (prefersReducedMotion) {
-    openGate();
-  } else {
-    window.addEventListener("load", function () {
-      setTimeout(openGate, 700);
-    });
-    setTimeout(openGate, 2500);
-  }
-
-  if (scrollCue) {
-    scrollCue.addEventListener("click", function () {
-      var target = document.getElementById("invitation");
-      if (target) target.scrollIntoView({ behavior: "smooth" });
+  var gate = document.getElementById("gate");
+  if (gate) {
+    try { sessionStorage.setItem("gateSeen", "1"); } catch (e) {}
+    gate.addEventListener("click", function () {
+      if (gate.classList.contains("is-skipped")) return;
+      // restart the animations with the short timings
+      gate.classList.add("is-skipped");
+      var leaves = gate.querySelectorAll(".gate__leaf, .gate__glow");
+      for (var i = 0; i < leaves.length; i++) {
+        var el = leaves[i];
+        el.style.animation = "none";
+        void el.offsetWidth;
+        el.style.animation = "";
+      }
+      gate.style.animation = "none";
+      void gate.offsetWidth;
+      gate.style.animation = "gate-away .5s ease .55s forwards";
     });
   }
 
-  /* ---------------- particles: sparkles + fireflies ---------------- */
+  /* ---------------- golden dust ---------------- */
 
-  function rand(min, max) {
-    return Math.random() * (max - min) + min;
-  }
+  var canvas = document.getElementById("dust");
+  if (canvas && !reduceMotion && canvas.getContext) {
+    var ctx = canvas.getContext("2d");
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var w = 0, h = 0, motes = [], running = true, raf = null;
 
-  function spawnParticles() {
-    if (prefersReducedMotion || !particlesLayer) return;
+    function rand(a, b) { return Math.random() * (b - a) + a; }
 
-    var sparkCount = window.innerWidth < 560 ? 14 : 24;
-    var fireflyCount = window.innerWidth < 560 ? 6 : 10;
-
-    for (var i = 0; i < sparkCount; i++) {
-      var s = document.createElement("span");
-      s.className = "spark";
-      var size = rand(2, 5);
-      s.style.left = rand(2, 98) + "vw";
-      s.style.top = rand(4, 96) + "%";
-      s.style.width = size + "px";
-      s.style.height = size + "px";
-      s.style.setProperty("--dur", rand(2.6, 5.5).toFixed(2) + "s");
-      s.style.setProperty("--delay", rand(0, 6).toFixed(2) + "s");
-      s.style.setProperty("--peak", rand(0.5, 0.95).toFixed(2));
-      particlesLayer.appendChild(s);
+    function mote(initial) {
+      return {
+        x: rand(0, w),
+        y: initial ? rand(0, h) : h + 10,
+        r: rand(0.5, 2.1),
+        vy: rand(0.12, 0.45),
+        vx: rand(-0.12, 0.12),
+        phase: rand(0, Math.PI * 2),
+        tw: rand(0.008, 0.025),
+        a: rand(0.25, 0.85),
+      };
     }
 
-    for (var j = 0; j < fireflyCount; j++) {
-      var f = document.createElement("span");
-      f.className = "firefly";
-      var fsize = rand(4, 7);
-      f.style.left = rand(6, 94) + "vw";
-      f.style.top = rand(40, 92) + "%";
-      f.style.width = fsize + "px";
-      f.style.height = fsize + "px";
-      f.style.setProperty("--dur", rand(9, 16).toFixed(2) + "s");
-      f.style.setProperty("--delay", rand(0, 10).toFixed(2) + "s");
-      f.style.setProperty("--dx", rand(-40, 40).toFixed(0) + "px");
-      f.style.setProperty("--rise", rand(140, 320).toFixed(0) + "px");
-      particlesLayer.appendChild(f);
+    function resize() {
+      w = canvas.clientWidth;
+      h = canvas.clientHeight;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      var count = w < 600 ? 45 : 85;
+      motes = [];
+      for (var i = 0; i < count; i++) motes.push(mote(true));
+    }
+
+    function frame() {
+      ctx.clearRect(0, 0, w, h);
+      for (var i = 0; i < motes.length; i++) {
+        var m = motes[i];
+        m.y -= m.vy;
+        m.x += m.vx + Math.sin(m.phase) * 0.15;
+        m.phase += m.tw;
+        if (m.y < -10) motes[i] = m = mote(false);
+        var alpha = m.a * (0.55 + 0.45 * Math.sin(m.phase * 2));
+        var g = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, m.r * 3.2);
+        g.addColorStop(0, "rgba(255,232,180," + alpha + ")");
+        g.addColorStop(1, "rgba(198,160,106,0)");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, m.r * 3.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      if (running) raf = requestAnimationFrame(frame);
+    }
+
+    resize();
+    frame();
+    window.addEventListener("resize", resize);
+
+    // pause when the hero is off-screen
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(function (entries) {
+        var visible = entries[0].isIntersecting;
+        if (visible && !running) { running = true; frame(); }
+        else if (!visible) { running = false; cancelAnimationFrame(raf); }
+      }).observe(canvas);
     }
   }
 
-  spawnParticles();
-
-  /* ---------------- scroll reveal ---------------- */
+  /* ---------------- reveal on scroll ---------------- */
 
   var revealEls = document.querySelectorAll(".reveal");
-  if ("IntersectionObserver" in window && !prefersReducedMotion) {
-    var revealObserver = new IntersectionObserver(
+  if ("IntersectionObserver" in window && !reduceMotion) {
+    var io = new IntersectionObserver(
       function (entries) {
         entries.forEach(function (entry) {
           if (entry.isIntersecting) {
             entry.target.classList.add("is-visible");
-            revealObserver.unobserve(entry.target);
+            io.unobserve(entry.target);
           }
         });
       },
-      { threshold: 0.15, rootMargin: "0px 0px -8% 0px" }
+      { threshold: 0.12, rootMargin: "0px 0px -6% 0px" }
     );
-    revealEls.forEach(function (el) {
-      revealObserver.observe(el);
-    });
+    revealEls.forEach(function (el) { io.observe(el); });
   } else {
-    revealEls.forEach(function (el) {
-      el.classList.add("is-visible");
-    });
+    revealEls.forEach(function (el) { el.classList.add("is-visible"); });
   }
 
-  /* ---------------- countdown ---------------- */
+  /* ---------------- pinned buy bar (mobile) ----------------
+     Shown once the hero's buy button has scrolled away, hidden again
+     while the final buy button is on screen (no point doubling it). */
 
-  // Mock start time — replace with the confirmed gate-opening time.
-  var EVENT_DATE = new Date("2026-09-13T12:00:00+06:00");
-
-  var cdDays = document.getElementById("cd-days");
-  var cdHours = document.getElementById("cd-hours");
-  var cdMins = document.getElementById("cd-mins");
-  var cdSecs = document.getElementById("cd-secs");
-
-  function pad(n) {
-    return String(n).padStart(2, "0");
-  }
-
-  function updateCountdown() {
-    if (!cdDays) return;
-    var diff = EVENT_DATE.getTime() - Date.now();
-    if (diff <= 0) {
-      cdDays.textContent = "00";
-      cdHours.textContent = "00";
-      cdMins.textContent = "00";
-      cdSecs.textContent = "00";
-      return;
+  var bar = document.getElementById("buybar");
+  var heroBuy = document.getElementById("heroBuy");
+  var finalBuy = document.getElementById("finalBuy");
+  if (bar && heroBuy && "IntersectionObserver" in window) {
+    var heroGone = false, finalShown = false;
+    function sync() {
+      var show = heroGone && !finalShown;
+      bar.classList.toggle("is-visible", show);
+      document.body.classList.toggle("has-buybar", show);
     }
-    var totalSeconds = Math.floor(diff / 1000);
-    var days = Math.floor(totalSeconds / 86400);
-    var hours = Math.floor((totalSeconds % 86400) / 3600);
-    var mins = Math.floor((totalSeconds % 3600) / 60);
-    var secs = totalSeconds % 60;
-
-    cdDays.textContent = pad(days);
-    cdHours.textContent = pad(hours);
-    cdMins.textContent = pad(mins);
-    cdSecs.textContent = pad(secs);
-  }
-
-  if (cdDays) {
-    updateCountdown();
-    setInterval(updateCountdown, 1000);
-  }
-
-  /* ---------------- checkbox gates the ticket button ---------------- */
-
-  function syncButtonState() {
-    var agreed = checkbox && checkbox.checked;
-    ticketButton.setAttribute("aria-disabled", agreed ? "false" : "true");
-  }
-
-  if (checkbox) {
-    checkbox.addEventListener("change", syncButtonState);
-    syncButtonState();
-  }
-
-  ticketButton.addEventListener("click", function (event) {
-    if (ticketButton.getAttribute("aria-disabled") === "true") {
-      event.preventDefault();
-      if (checkbox) checkbox.focus();
-    }
-  });
-
-  /* ---------------- rules modal ---------------- */
-
-  var lastFocused = null;
-
-  function openRules() {
-    lastFocused = document.activeElement;
-    rulesModal.classList.add("is-visible");
-    rulesModal.setAttribute("aria-hidden", "false");
-    rulesClose.focus();
-    document.addEventListener("keydown", onRulesKeydown);
-  }
-
-  function closeRules() {
-    rulesModal.classList.remove("is-visible");
-    rulesModal.setAttribute("aria-hidden", "true");
-    document.removeEventListener("keydown", onRulesKeydown);
-    if (lastFocused && typeof lastFocused.focus === "function") {
-      lastFocused.focus();
+    new IntersectionObserver(function (e) {
+      heroGone = !e[0].isIntersecting && e[0].boundingClientRect.top < 0;
+      sync();
+    }).observe(heroBuy);
+    if (finalBuy) {
+      new IntersectionObserver(function (e) {
+        finalShown = e[0].isIntersecting;
+        sync();
+      }).observe(finalBuy);
     }
   }
-
-  function onRulesKeydown(event) {
-    if (event.key === "Escape") closeRules();
-  }
-
-  if (rulesLink) rulesLink.addEventListener("click", openRules);
-  if (rulesClose) rulesClose.addEventListener("click", closeRules);
-  if (rulesOverlay) rulesOverlay.addEventListener("click", closeRules);
 })();

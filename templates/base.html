@@ -3,14 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>{% block title %}FairyTale Picnic — Girls Club × Ques{% endblock %}</title>
-<meta name="description" content="{% block description %}FairyTale Picnic — Girls Club × Ques. 13 сентября 2026, Event Garden · Ала-Арча. Один день, когда реальность встречается со сказкой.{% endblock %}">
+<title>{% block title %}Girls Club — A Thousand and One Nights{% endblock %}</title>
+<meta name="description" content="{% block description %}Girls Club — A Thousand and One Nights. «Тысяча и одна ночь»: {{ EVENT.event_date|date:"j E Y" }}, {{ EVENT.venue }}. Ваша восточная история начинается здесь.{% endblock %}">
+<meta name="theme-color" content="#1C0F10">
+<meta property="og:title" content="Girls Club — A Thousand and One Nights">
+<meta property="og:description" content="«Тысяча и одна ночь» · {{ EVENT.event_date|date:"j E Y" }} · {{ EVENT.venue }}">
+<meta property="og:image" content="{% static 'img/nights/lanterns.jpg' %}">
 
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9C%A8%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 6 C 62 22 86 30 86 58 L86 94 L14 94 L14 58 C14 30 38 22 50 6Z' fill='%234A1726' stroke='%23C6A06A' stroke-width='5'/%3E%3C/svg%3E">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Mrs+Saint+Delafield&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Forum&family=Great+Vibes&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400&display=swap&text=%D8%A3%D9%84%D9%81%20%D9%84%D9%8A%D9%84%D8%A9%20%D9%88" rel="stylesheet">
 
 <link rel="stylesheet" href="{% static 'css/style.css' %}">
 {% block extra_head %}{% endblock %}

@@ -172,7 +172,7 @@ def _create_payment_via_api(order):
             "accountId": settings.FINIK_ACCOUNT_ID,
             "name_en": settings.FINIK_QR_NAME,
             "webhookUrl": f"{settings.SITE_URL}{reverse('tickets:finik_webhook')}",
-            "description": f"Билет FairyTale Picnic — {order.full_name}",
+            "description": f"Билет A Thousand and One Nights — {order.full_name}",
             "Lang": "ru",
         },
     }
