@@ -1060,6 +1060,12 @@ html.gate-seen .gate{ display: none; }
   color: #5A2A22;
 }
 .checkout__deposit strong{ display: block; font-family: var(--label); letter-spacing: .06em; text-transform: uppercase; font-size: 1.05rem; color: var(--terracotta); }
+.checkout__note s{ opacity: .6; }
+.checkout__note strong{ color: var(--terracotta); }
+.checkout-form__promo-hint{ margin: .35em 0 0; font-size: .95rem; }
+.checkout-form__promo-hint:empty{ display: none; }
+.checkout-form__promo-hint.is-ok{ color: #2F6B45; }
+.checkout-form__promo-hint.is-bad{ color: #A3322B; }
 .checkout__error{ color: #A3322B; font-size: .98rem; margin: 0 0 1em; }
 .checkout__back{
   display: inline-block;

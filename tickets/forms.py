@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Order
+from .models import Order, PromoCode
 
 
 class OrderForm(forms.ModelForm):
@@ -18,6 +18,12 @@ class OrderForm(forms.ModelForm):
         widget=forms.CheckboxInput(attrs={"class": "agree__input"}),
     )
 
+    promo = forms.CharField(
+        label="Промокод",
+        required=False,
+        max_length=40,
+        widget=forms.TextInput(attrs={"placeholder": "Если есть", "autocomplete": "off", "autocapitalize": "characters"}),
+    )
     deposit_agreed = forms.BooleanField(
         required=True,
         error_messages={"required": "Подтвердите, что знаете про депозит на месте."},
@@ -32,6 +38,17 @@ class OrderForm(forms.ModelForm):
             self.fields["deposit_agreed"].label = f"Я понимаю, что депозит {deposit} сом оплачивается дополнительно на месте"
         else:
             del self.fields["deposit_agreed"]
+
+    def clean_promo(self):
+        code = self.cleaned_data.get("promo", "").strip()
+        if not code:
+            self.promo_obj = None
+            return ""
+        promo = PromoCode.find(code)
+        if promo is None:
+            raise forms.ValidationError("Такого промокода нет или он больше не действует.")
+        self.promo_obj = promo
+        return code
 
     class Meta:
         model = Order

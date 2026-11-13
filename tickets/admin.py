@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils.html import format_html
 
 from . import services
-from .models import Order, PaymentInstructions, PaymentSettings, Ticket
+from .models import Order, PaymentInstructions, PaymentSettings, PromoCode, Ticket
 
 
 class TicketInline(admin.TabularInline):
@@ -33,13 +33,14 @@ class OrderAdmin(admin.ModelAdmin):
         "phone",
         "quantity",
         "amount",
+        "promo_code",
         "payment_method",
         "status",
         "created_at",
         "checked_in_column",
         "is_legacy_shared_qr",
     )
-    list_filter = ("payment_method", "status", "is_legacy_shared_qr")
+    list_filter = ("payment_method", "status", "promo_code", "is_legacy_shared_qr")
     search_fields = ("full_name", "email", "phone", "qr_token", "payment_id", "tickets__qr_token")
     readonly_fields = (
         "qr_token",
@@ -60,6 +61,8 @@ class OrderAdmin(admin.ModelAdmin):
         "rules_agreed",
         "quantity",
         "amount",
+        "promo_code",
+        "discount_percent",
         "payment_method",
         "status",
         "receipt_preview",
@@ -153,3 +156,16 @@ class PaymentSettingsAdmin(admin.ModelAdmin):
         # changelist with one link to click through.
         obj = PaymentSettings.load()
         return redirect(reverse("admin:tickets_paymentsettings_change", args=[obj.pk]))
+
+
+@admin.register(PromoCode)
+class PromoCodeAdmin(admin.ModelAdmin):
+    list_display = ("code", "discount_percent", "is_active", "valid_until", "uses_column", "note")
+    list_editable = ("is_active",)
+    search_fields = ("code", "note")
+    readonly_fields = ("uses_column", "created_at")
+
+    @admin.display(description="Использован")
+    def uses_column(self, obj):
+        used = obj.used_count()
+        return f"{used} / {obj.max_uses}" if obj.max_uses else str(used)

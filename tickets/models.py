@@ -1,13 +1,69 @@
 import uuid
+from decimal import ROUND_HALF_UP, Decimal
 
 from django.conf import settings
-from django.core.validators import FileExtensionValidator
+from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
 from django.db import models
+from django.utils import timezone
 
 
 def receipt_upload_path(instance, filename):
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "bin"
     return f"receipts/{uuid.uuid4()}.{ext}"
+
+
+class PromoCode(models.Model):
+    """Discount code typed at checkout. Matched case-insensitively.
+    Managed entirely from the admin."""
+
+    code = models.CharField("Промокод", max_length=40, unique=True)
+    discount_percent = models.PositiveSmallIntegerField(
+        "Скидка, %", validators=[MinValueValidator(1), MaxValueValidator(100)]
+    )
+    is_active = models.BooleanField("Активен", default=True)
+    valid_until = models.DateTimeField(
+        "Действует до", blank=True, null=True, help_text="Пусто — без срока"
+    )
+    max_uses = models.PositiveIntegerField(
+        "Лимит заказов", blank=True, null=True, help_text="Пусто — без ограничений"
+    )
+    note = models.CharField("Заметка", max_length=200, blank=True, help_text="Например, чей это промокод")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Промокод"
+        verbose_name_plural = "Промокоды"
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"{self.code} (−{self.discount_percent}%)"
+
+    def used_count(self):
+        # Rejected / failed orders don't eat the limit.
+        return self.orders.exclude(status__in=[Order.STATUS_REJECTED, Order.STATUS_FAILED]).count()
+
+    def is_usable(self, now=None):
+        now = now or timezone.now()
+        if not self.is_active:
+            return False
+        if self.valid_until and now > self.valid_until:
+            return False
+        if self.max_uses is not None and self.used_count() >= self.max_uses:
+            return False
+        return True
+
+    @classmethod
+    def find(cls, code):
+        """The usable promo for `code`, or None."""
+        code = (code or "").strip()
+        if not code:
+            return None
+        promo = cls.objects.filter(code__iexact=code).first()
+        return promo if promo and promo.is_usable() else None
+
+    def apply(self, amount):
+        """Price after discount, rounded to whole som."""
+        return (Decimal(amount) * (100 - self.discount_percent) / 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
 
 
 class Order(models.Model):
@@ -64,6 +120,15 @@ class Order(models.Model):
 
     quantity = models.PositiveIntegerField("Количество билетов", default=1)
     amount = models.DecimalField("Сумма, сом", max_digits=10, decimal_places=2)
+    promo_code = models.ForeignKey(
+        PromoCode,
+        verbose_name="Промокод",
+        related_name="orders",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+    )
+    discount_percent = models.PositiveSmallIntegerField("Скидка, %", default=0)
     payment_method = models.CharField(
         "Способ оплаты",
         max_length=16,

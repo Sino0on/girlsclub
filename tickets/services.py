@@ -15,6 +15,13 @@ from event.models import EventSettings
 from .models import Order, Ticket
 
 
+def promo_note(order):
+    """' (промокод X, −15%)' for moderator messages, or ''."""
+    if not order.promo_code_id:
+        return ""
+    return f" (промокод {order.promo_code.code}, −{order.discount_percent}%)"
+
+
 def generate_qr_code(ticket):
     """Render a QR PNG encoding this ticket's verification URL and
     attach it (does not save the model — caller is expected to)."""
@@ -101,7 +108,7 @@ def notify_moderators(order):
         f"Email: {order.email}\n"
         f"Телефон: {order.phone}\n"
         f"Количество: {order.quantity}\n"
-        f"Сумма: {order.amount} сом\n\n"
+        f"Сумма: {order.amount} сом{promo_note(order)}\n\n"
         "Билет уже отправлен покупателю. «Нет» аннулирует его и уведомит "
         "покупателя по почте."
     )
@@ -330,7 +337,7 @@ def notify_group_of_purchase(order):
         f"Email: {order.email}\n"
         f"Телефон: {order.phone}\n"
         f"Количество: {order.quantity}\n"
-        f"Сумма: {order.amount} сом\n"
+        f"Сумма: {order.amount} сом{promo_note(order)}\n"
         f"Способ оплаты: {order.get_payment_method_display()}"
     )
     response = requests.post(

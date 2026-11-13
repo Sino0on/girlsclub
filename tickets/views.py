@@ -13,7 +13,7 @@ from event.models import EventSettings
 
 from . import finik, freedompay, services
 from .forms import OrderForm, ReceiptUploadForm
-from .models import Order, PaymentInstructions, PaymentSettings
+from .models import Order, PaymentInstructions, PaymentSettings, PromoCode
 
 # Gateways selectable from the admin (Настройки оплаты). Each module
 # exposes create_payment(order) -> redirect URL, and its own Error class.
@@ -30,6 +30,11 @@ def buy(request):
         if form.is_valid():
             order = form.save(commit=False)
             order.amount = order.quantity * event.current_price()
+            promo = getattr(form, "promo_obj", None)
+            if promo:
+                order.promo_code = promo
+                order.discount_percent = promo.discount_percent
+                order.amount = promo.apply(order.amount)
             method = PaymentSettings.load().active_method
             order.payment_method = method
 
@@ -50,6 +55,15 @@ def buy(request):
     else:
         form = OrderForm(deposit=event.deposit)
     return render(request, "tickets/buy.html", {"form": form})
+
+
+def promo_check(request):
+    """Live total on the checkout page: is this promo code usable, and for
+    how much? The real discount is re-checked server-side on submit."""
+    promo = PromoCode.find(request.GET.get("code"))
+    if promo is None:
+        return JsonResponse({"ok": False})
+    return JsonResponse({"ok": True, "percent": promo.discount_percent})
 
 
 def upload_receipt(request, token):

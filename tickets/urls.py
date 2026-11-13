@@ -6,6 +6,7 @@ app_name = "tickets"
 
 urlpatterns = [
     path("buy/", views.buy, name="buy"),
+    path("promo/", views.promo_check, name="promo_check"),
     path("upload/<uuid:token>/", views.upload_receipt, name="upload_receipt"),
     path("verify/<uuid:token>/", views.verify, name="verify"),
     path("scanner/", views.scanner, name="scanner"),

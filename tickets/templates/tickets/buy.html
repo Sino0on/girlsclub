@@ -81,15 +81,53 @@
 <script>
 (function () {
   var qty = document.getElementById("id_quantity");
+  var promoInput = document.getElementById("id_promo");
   var total = document.getElementById("order-total");
   if (!qty || !total) return;
   var price = parseInt(total.dataset.price, 10) || 0;
+  var percent = 0, promoCode = "";
+  var promoUrl = "{% url 'tickets:promo_check' %}";
+
+  // live hint under the promo field
+  var hint = document.createElement("p");
+  hint.className = "checkout-form__promo-hint";
+  if (promoInput) promoInput.parentNode.appendChild(hint);
+
   function update() {
     var n = parseInt(qty.value, 10);
     if (!n || n < 1) n = 1;
-    total.textContent = "Итого: " + (n * price) + " сом";
+    var full = n * price;
+    if (percent) {
+      var discounted = Math.round(full * (100 - percent) / 100);
+      total.innerHTML = "Итого: <s>" + full + "</s> <strong>" + discounted + " сом</strong> · скидка " + percent + "%";
+    } else {
+      total.textContent = "Итого: " + full + " сом";
+    }
   }
+
+  var timer = null;
+  function checkPromo() {
+    var code = promoInput.value.trim();
+    if (code === promoCode) return;
+    promoCode = code;
+    if (!code) { percent = 0; hint.textContent = ""; hint.className = "checkout-form__promo-hint"; update(); return; }
+    fetch(promoUrl + "?code=" + encodeURIComponent(code))
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (code !== promoCode) return; // a newer request is in flight
+        percent = data.ok ? data.percent : 0;
+        hint.textContent = data.ok ? "Промокод применён: скидка " + data.percent + "%" : "Такого промокода нет или он больше не действует";
+        hint.className = "checkout-form__promo-hint " + (data.ok ? "is-ok" : "is-bad");
+        update();
+      })
+      .catch(function () {});
+  }
+
   qty.addEventListener("input", update);
+  if (promoInput) {
+    promoInput.addEventListener("input", function () { clearTimeout(timer); timer = setTimeout(checkPromo, 400); });
+    checkPromo();
+  }
   update();
 })();
 </script>
