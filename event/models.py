@@ -18,7 +18,7 @@ class EventSettings(models.Model):
     """
 
     title = models.CharField("Название", max_length=120, default="A Thousand and One Nights")
-    title_ru = models.CharField("Название по-русски", max_length=120, default="Тысяча и одна ночь")
+    title_ru = models.CharField("Название по-русски", max_length=120, default="1001 ночь")
 
     event_date = models.DateField("Дата мероприятия", default=datetime.date(2026, 11, 29))
     gathering_time = models.TimeField("Сбор гостей", default=datetime.time(19, 0))

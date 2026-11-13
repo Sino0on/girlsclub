@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>{% block title %}Girls Club — A Thousand and One Nights{% endblock %}</title>
-<meta name="description" content="{% block description %}Girls Club — A Thousand and One Nights. «Тысяча и одна ночь»: {{ EVENT.event_date|date:"j E Y" }}, {{ EVENT.venue }}. Ваша восточная история начинается здесь.{% endblock %}">
+<meta name="description" content="{% block description %}Girls Club — A Thousand and One Nights. «{{ EVENT.title_ru }}»: {{ EVENT.event_date|date:"j E Y" }}, {{ EVENT.venue }}. Ваша восточная история начинается здесь.{% endblock %}">
 <meta name="theme-color" content="#1C0F10">
 <meta property="og:title" content="Girls Club — A Thousand and One Nights">
-<meta property="og:description" content="«Тысяча и одна ночь» · {{ EVENT.event_date|date:"j E Y" }} · {{ EVENT.venue }}">
+<meta property="og:description" content="«{{ EVENT.title_ru }}» · {{ EVENT.event_date|date:"j E Y" }} · {{ EVENT.venue }}">
 <meta property="og:image" content="{% static 'img/nights/lanterns.jpg' %}">
 
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 6 C 62 22 86 30 86 58 L86 94 L14 94 L14 58 C14 30 38 22 50 6Z' fill='%234A1726' stroke='%23C6A06A' stroke-width='5'/%3E%3C/svg%3E">

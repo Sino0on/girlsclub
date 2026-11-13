@@ -1,6 +1,6 @@
 Дорогая, двери дворца открыты для тебя ✨
 
-Ваш билет на A Thousand and One Nights — «Тысяча и одна ночь» — оформлен.
+Ваш билет на A Thousand and One Nights — «{{ event.title_ru }}» — оформлен.
 
 Имя: {{ order.full_name }}
 Билетов: {{ order.quantity }}

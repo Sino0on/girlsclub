@@ -324,6 +324,14 @@ html.gate-seen .gate{ display: none; }
   line-height: 1.2;
   color: var(--champagne);
 }
+.hero__nights{ margin: -.2em auto -.9em; width: min(78vw, 300px); }
+@media (min-width: 900px){ .hero__nights{ width: 400px; } }
+.hero__nights img{
+  display: block; width: 100%; height: auto;
+  /* the glow runs to the picture's edges; fade it out so no box shows */
+  -webkit-mask-image: radial-gradient(ellipse 50% 50% at center, #000 62%, transparent 100%);
+          mask-image: radial-gradient(ellipse 50% 50% at center, #000 62%, transparent 100%);
+}
 .hero .ornament{ margin: .5em auto .2em; width: 160px; }
 
 .facts{
