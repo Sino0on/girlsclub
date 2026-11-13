@@ -491,24 +491,32 @@ html.gate-seen .gate{ display: none; }
 .club__text{ max-width: 560px; margin: 0 auto; text-align: center; }
 .club__photos{
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
   align-items: end;
-  max-width: 520px;
+  max-width: 720px;
   width: 100%;
   margin: 0 auto;
 }
 .club__photos .arch{ aspect-ratio: 2 / 3; }
 /* past-event photos are green/pink — warm them into the night palette */
 .club__photos img{ filter: sepia(.45) saturate(.75) contrast(1.05) brightness(.92); }
-.club__photos .arch:nth-child(2){ transform: translateY(-22px); }
+/* арка из пяти: логотип в центре выше всех, соседние фото чуть ниже */
+.club__photos .arch--logo{ transform: translateY(-22px); }
+.club__photos .arch--near{ transform: translateY(-10px); }
 .arch--logo{
   display: grid; place-items: center;
   background: radial-gradient(ellipse at 50% 40%, rgba(198,160,106,.22), transparent 70%), var(--wine);
 }
 .club__photos .arch--logo img{ width: 78%; height: auto; filter: drop-shadow(0 0 12px rgba(233,211,164,.35)); }
-.js .club__photos .arch.reveal:nth-child(2){ transform: translateY(6px); }
-.js .club__photos .arch.reveal.is-visible:nth-child(2){ transform: translateY(-22px); }
+.js .club__photos .arch--logo.reveal{ transform: translateY(6px); }
+.js .club__photos .arch--logo.reveal.is-visible{ transform: translateY(-22px); }
+.js .club__photos .arch--near.reveal{ transform: translateY(14px); }
+.js .club__photos .arch--near.reveal.is-visible{ transform: translateY(-10px); }
+@media (max-width: 480px){
+  .club__photos{ gap: 5px; }
+  .club__photos .arch--logo img{ width: 88%; }
+}
 
 /* =====================================================
    3. STORY
