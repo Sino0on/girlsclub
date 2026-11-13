@@ -95,14 +95,9 @@
 
     <div class="ticket hero-in" style="--d:4">
       {% include "event/_price.html" %}
+      {% include "event/_deposit.html" %}
       <a href="{{ BUY_URL }}" class="buy-button" id="heroBuy"><span>Купить билет</span></a>
     </div>
-    {% if EVENT.deposit %}
-    <p class="deposit hero-in" style="--d:5">
-      <span class="deposit__sum">+ депозит {{ EVENT.deposit }} сом</span>
-      <span class="deposit__note">не входит в билет · оплачивается на месте, в заведении</span>
-    </p>
-    {% endif %}
   </div>
 
   <a class="hero__scroll" href="#club" aria-label="Листайте вниз">
@@ -130,7 +125,7 @@
     </div>
     <div class="club__photos">
       <figure class="arch reveal reveal--rise" style="--d:0"><img src="{% static 'img/nights/club-1.jpg' %}" alt="Прошлое мероприятие Girls Club" loading="lazy" width="700" height="1050"></figure>
-      <figure class="arch reveal reveal--rise" style="--d:1"><img src="{% static 'img/nights/club-2.jpg' %}" alt="Гостьи Girls Club на празднике" loading="lazy" width="700" height="1244"></figure>
+      <figure class="arch arch--logo reveal reveal--rise" style="--d:1"><img src="{% static 'img/nights/girls-club-logo.webp' %}" alt="Girls Club" loading="lazy" width="504" height="520"></figure>
       <figure class="arch reveal reveal--rise" style="--d:2"><img src="{% static 'img/nights/club-3.jpg' %}" alt="Атмосфера вечера Girls Club" loading="lazy" width="700" height="968"></figure>
     </div>
   </div>
@@ -310,14 +305,9 @@
     </ul>
     <div class="ticket ticket--final">
       {% include "event/_price.html" %}
+      {% include "event/_deposit.html" %}
       <a href="{{ BUY_URL }}" class="buy-button buy-button--big" id="finalBuy"><span>Купить билет</span></a>
     </div>
-    {% if EVENT.deposit %}
-    <p class="deposit">
-      <span class="deposit__sum">+ депозит {{ EVENT.deposit }} сом</span>
-      <span class="deposit__note">не входит в билет · оплачивается на месте, в заведении</span>
-    </p>
-    {% endif %}
     <p class="finale__whisper">Ваше место в этой истории уже ждёт вас</p>
   </div>
 </section>
@@ -334,7 +324,7 @@
 <div class="buybar" id="buybar">
   <div class="buybar__price">
     <strong>{{ TICKET_PRICE_KGS }} сом</strong>
-    <span>{% if EVENT.is_early %}до {{ EVENT.early_until|date:"j E" }}{% else %}билет{% endif %}</span>
+    {% if EVENT.deposit %}<span class="buybar__deposit">+ депозит {{ EVENT.deposit }} на&nbsp;месте</span>{% else %}<span>{% if EVENT.is_early %}до {{ EVENT.early_until|date:"j E" }}{% else %}билет{% endif %}</span>{% endif %}
   </div>
   <a href="{{ BUY_URL }}" class="buy-button buy-button--small"><span>Купить билет</span></a>
 </div>

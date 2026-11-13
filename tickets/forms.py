@@ -18,6 +18,21 @@ class OrderForm(forms.ModelForm):
         widget=forms.CheckboxInput(attrs={"class": "agree__input"}),
     )
 
+    deposit_agreed = forms.BooleanField(
+        required=True,
+        error_messages={"required": "Подтвердите, что знаете про депозит на месте."},
+        widget=forms.CheckboxInput(attrs={"class": "agree__input"}),
+    )
+
+    def __init__(self, *args, deposit=0, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Not a model field: just an explicit "I've read it" so nobody is
+        # surprised by the deposit at the door.
+        if deposit:
+            self.fields["deposit_agreed"].label = f"Я понимаю, что депозит {deposit} сом оплачивается дополнительно на месте"
+        else:
+            del self.fields["deposit_agreed"]
+
     class Meta:
         model = Order
         fields = ["full_name", "email", "phone", "quantity", "rules_agreed"]

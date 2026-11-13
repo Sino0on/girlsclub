@@ -1,0 +1,12 @@
+{% comment %} Deposit notice. Guests tend to skip small print, so this is loud on
+   purpose: filled, bordered, with a warning badge, and placed right above
+   the buy button so it can't be scrolled past. {% endcomment %}
+{% if EVENT.deposit %}
+<div class="deposit" role="note">
+  <span class="deposit__badge" aria-hidden="true">!</span>
+  <p class="deposit__text">
+    <strong class="deposit__sum">+ депозит {{ EVENT.deposit }} сом</strong>
+    <span class="deposit__note">оплачивается <b>дополнительно на месте</b>, в&nbsp;ресторане. В&nbsp;стоимость билета не&nbsp;входит.</span>
+  </p>
+</div>
+{% endif %}

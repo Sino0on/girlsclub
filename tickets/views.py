@@ -24,11 +24,12 @@ GATEWAYS = {
 
 
 def buy(request):
+    event = EventSettings.load()
     if request.method == "POST":
-        form = OrderForm(request.POST)
+        form = OrderForm(request.POST, deposit=event.deposit)
         if form.is_valid():
             order = form.save(commit=False)
-            order.amount = order.quantity * EventSettings.load().current_price()
+            order.amount = order.quantity * event.current_price()
             method = PaymentSettings.load().active_method
             order.payment_method = method
 
@@ -47,7 +48,7 @@ def buy(request):
                 return render(request, "tickets/buy.html", {"form": form})
             return redirect(redirect_url)
     else:
-        form = OrderForm()
+        form = OrderForm(deposit=event.deposit)
     return render(request, "tickets/buy.html", {"form": form})
 
 
