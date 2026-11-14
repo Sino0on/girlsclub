@@ -688,6 +688,27 @@ html.gate-seen .gate{ display: none; }
 .prize__text p:first-child{ font-style: italic; font-size: 1.22rem; }
 .prize__text strong{ color: var(--burgundy); }
 .prize__terms{ font-size: .9rem; opacity: .75; }
+.prize__sponsor{
+  display: inline-flex; align-items: center; gap: .6em;
+  margin: -.2em 0 1.3em; padding: .45em 1.1em .45em .9em;
+  border: 1px solid rgba(74,23,38,.35); border-radius: 999px;
+  background: rgba(255,244,222,.45);
+}
+.prize__sponsor-by{ font-style: italic; font-size: 1.05rem; color: var(--terracotta); white-space: nowrap; }
+.prize__sponsor-logo{ height: 34px; width: auto; }
+.prize__sponsor-logo--light{ display: none; }
+.prize__sponsor-name{ font-family: var(--caps); font-weight: 600; font-size: 1.15rem; letter-spacing: .08em; text-transform: uppercase; color: var(--burgundy); white-space: nowrap; }
+@media (max-width: 420px){
+  .prize__sponsor{ gap: .45em; padding: .4em .85em .4em .7em; }
+  .prize__sponsor-by{ font-size: .95rem; }
+  .prize__sponsor-logo{ height: 28px; }
+  .prize__sponsor-name{ font-size: .95rem; letter-spacing: .05em; }
+}
+.prize--photo .prize__sponsor{ border-color: rgba(233,211,164,.45); background: rgba(28,15,16,.35); }
+.prize--photo .prize__sponsor-by{ color: var(--gold-hi); }
+.prize--photo .prize__sponsor-name{ color: var(--gold-hi); }
+.prize--photo .prize__sponsor-logo--dark{ display: none; }
+.prize--photo .prize__sponsor-logo--light{ display: block; }
 .prize__skyline{ position: relative; width: 100%; height: clamp(150px, 26vw, 280px); margin-top: 6px; }
 
 .prize--photo{ color: var(--champagne); background: var(--night); padding-bottom: clamp(84px, 13vw, 130px); }
@@ -773,6 +794,8 @@ html.gate-seen .gate{ display: none; }
   transition: filter .3s ease, opacity .3s ease;
 }
 .partners__item:hover img{ filter: none; opacity: 1; }
+/* one or two partners: centre them instead of leaving a lone left cell */
+.partners__grid:has(> :only-child){ grid-template-columns: minmax(0, 260px); justify-content: center; }
 .partners__soon{ max-width: 460px; margin: 0 auto; text-align: center; font-style: italic; font-size: 1.15rem; color: rgba(232,215,189,.75); }
 
 /* =====================================================
