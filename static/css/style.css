@@ -565,10 +565,11 @@ html.gate-seen .gate{ display: none; }
 }
 .pcard__title{
   margin: .2em 0 .35em;
-  font-family: var(--caps);
-  font-weight: 500;
-  font-size: 1.2rem;
-  letter-spacing: .04em;
+  font-family: var(--label);   /* Cyrillic titles; Cinzel has no Cyrillic */
+  font-weight: 400;
+  font-size: 1.12rem;
+  letter-spacing: .05em;
+  text-transform: uppercase;
   color: var(--gold-hi);
 }
 .program__hint{
