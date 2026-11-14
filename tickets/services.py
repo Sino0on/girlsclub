@@ -350,6 +350,10 @@ def notify_group_of_purchase(order):
     )
     if not response.ok:
         raise RuntimeError(f"Telegram {response.status_code}: {response.text[:300]}")
+    # Remember it was announced, so notify_purchases won't send it twice.
+    order.telegram_chat_id = str(chat_id)
+    order.telegram_message_id = response.json().get("result", {}).get("message_id")
+    order.save(update_fields=["telegram_chat_id", "telegram_message_id"])
 
 
 def mark_order_paid(order, payment_id="", payment_method=None):
