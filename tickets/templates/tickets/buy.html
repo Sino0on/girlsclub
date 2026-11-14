@@ -17,6 +17,7 @@
     {% if EVENT.deposit %}
     <p class="checkout__deposit"><strong>Важно: + депозит {{ EVENT.deposit }} сом</strong>Оплачивается дополнительно на месте, в ресторане. В стоимость билета не входит.</p>
     {% endif %}
+    {% include "tickets/_table_booking.html" %}
 
     {% if messages %}
       {% for message in messages %}

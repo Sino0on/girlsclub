@@ -35,6 +35,8 @@
         {% if order.quantity > 1 %}Каждый билет можно показать отдельно — их можно передать разным людям.{% endif %}
       </p>
 
+      {% include "tickets/_table_booking.html" %}
+
       <a href="{% url 'event:home' %}" class="checkout__back">← Вернуться на страницу события</a>
     {% else %}
       <div class="checkout__divider" aria-hidden="true">✦</div>

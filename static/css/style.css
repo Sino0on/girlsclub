@@ -1217,6 +1217,34 @@ html.gate-seen .gate{ display: none; }
 .whatsapp-panel__link:hover{ background: #ddf5e3; }
 .whatsapp-panel__link svg{ width: 19px; height: 19px; fill: #25D366; flex: 0 0 auto; }
 
+/* venue notice: book a table / pre-order food (checkout + success) */
+.booking{
+  margin: 0 0 1.4em;
+  padding: .9em 1em 1em;
+  text-align: left;
+  background: rgba(198,160,106,.14);
+  border: 1.5px solid var(--gold);
+  border-radius: 12px;
+  font-size: 1rem;
+  line-height: 1.45;
+  color: #3B2416;
+}
+.booking__title{ margin: 0 0 .45em; font-family: var(--label); letter-spacing: .06em; text-transform: uppercase; font-size: 1.05rem; color: var(--terracotta); }
+.booking__text{ margin: 0 0 .5em; }
+.booking__text b{ font-weight: 600; color: #5A2A22; }
+.booking__links{ display: flex; flex-wrap: wrap; gap: .5em; margin-top: .8em; }
+.booking__links a{
+  display: inline-flex; align-items: center; gap: .45em;
+  padding: .5em .9em; border-radius: 999px;
+  font-weight: 600; text-decoration: none; font-size: 1rem;
+}
+.booking__links svg{ width: 16px; height: 16px; fill: currentColor; flex: none; }
+.booking__phone{ background: var(--terracotta); color: #fff; }
+.booking__phone:hover{ background: #73392E; }
+.booking__wa{ background: #25D366; color: #fff; }
+.booking__wa:hover{ background: #1DA851; }
+.booking__hours{ margin: .6em 0 0; font-size: .92rem; font-style: italic; opacity: .8; }
+
 .checkout__contact{ margin-top: 1.6em; padding-top: 1.2em; border-top: 1px dashed rgba(142,106,60,.35); font-size: .95rem; }
 .checkout__contact-title{ margin: 0 0 .5em; opacity: .75; }
 .checkout__contact-links{ display: flex; flex-wrap: wrap; justify-content: center; gap: .6em .9em; }
