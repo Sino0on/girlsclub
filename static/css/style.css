@@ -770,10 +770,13 @@ html.gate-seen .gate{ display: none; }
   margin: 0 auto;
   padding: 0;
   max-width: 960px;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  /* flex, not grid: an unfinished last row stays centred */
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 12px;
 }
+.partners__grid > li{ flex: 0 0 calc((100% - 12px) / 2); }
 .partners__item{
   aspect-ratio: 3 / 2;
   display: flex;
@@ -789,14 +792,14 @@ html.gate-seen .gate{ display: none; }
   max-width: 72%;
   max-height: 58px;
   object-fit: contain;
-  /* bring every logo to one tone so the row looks like a set */
-  filter: grayscale(1) brightness(1.6) sepia(.35);
-  opacity: .85;
+  /* bring every logo to one light champagne tone so the row looks like a
+     set and dark/coloured logos stay readable on the wine background */
+  filter: brightness(0) invert(1) sepia(.35);
+  opacity: .88;
   transition: filter .3s ease, opacity .3s ease;
 }
 .partners__item:hover img{ filter: none; opacity: 1; }
 /* one or two partners: centre them instead of leaving a lone left cell */
-.partners__grid:has(> :only-child){ grid-template-columns: minmax(0, 260px); justify-content: center; }
 .partners__soon{ max-width: 460px; margin: 0 auto; text-align: center; font-style: italic; font-size: 1.15rem; color: rgba(232,215,189,.75); }
 
 /* =====================================================
@@ -897,7 +900,7 @@ html.gate-seen .gate{ display: none; }
    ===================================================== */
 
 @media (min-width: 720px){
-  .partners__grid{ grid-template-columns: repeat(4, 1fr); }
+  .partners__grid > li{ flex-basis: calc((100% - 36px) / 4); }
   .program__list{ grid-auto-columns: 40%; }
 }
 
