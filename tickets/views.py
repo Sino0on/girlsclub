@@ -1,4 +1,5 @@
 import json
+import logging
 
 from django.conf import settings
 from django.contrib import messages
@@ -14,6 +15,8 @@ from event.models import EventSettings
 from . import finik, freedompay, services
 from .forms import OrderForm, ReceiptUploadForm
 from .models import Order, PaymentInstructions, PaymentSettings, PromoCode
+
+logger = logging.getLogger(__name__)
 
 # Gateways selectable from the admin (Настройки оплаты). Each module
 # exposes create_payment(order) -> redirect URL, and its own Error class.
@@ -269,6 +272,7 @@ def finik_webhook(request):
         return HttpResponse(status=400)
 
     if not finik.verify_webhook(request, payload):
+        logger.warning("Finik webhook: bad signature, payload=%s", str(payload)[:500])
         return HttpResponse(status=401)
 
     status = str(payload.get("status", "")).lower()
@@ -280,8 +284,10 @@ def finik_webhook(request):
     payment_id = (payload.get("fields") or {}).get("paymentId")
     order = Order.objects.filter(qr_token=payment_id).first()
     if not order:
+        logger.warning("Finik webhook: no order for paymentId=%s", payment_id)
         return HttpResponse(status=200)
 
+    logger.info("Finik webhook: order %s paid", order.pk)
     services.mark_order_paid(
         order,
         payment_id=payload.get("transactionId", ""),

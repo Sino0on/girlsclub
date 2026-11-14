@@ -198,3 +198,15 @@ DEFAULT_FROM_EMAIL = os.environ.get(
 # chat IDs are negative numbers, e.g. -1001234567890).
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_MODERATOR_CHAT_ID = os.environ.get("TELEGRAM_MODERATOR_CHAT_ID", "")
+
+
+# Log to stdout so `docker compose logs web` shows payment / Telegram /
+# email failures (they used to be swallowed silently).
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "loggers": {
+        "tickets": {"handlers": ["console"], "level": "INFO"},
+    },
+}

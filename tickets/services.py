@@ -1,5 +1,6 @@
 import io
 import json
+import logging
 import time
 
 import qrcode
@@ -13,6 +14,8 @@ from django.utils import timezone
 from event.models import EventSettings
 
 from .models import Order, Ticket
+
+logger = logging.getLogger(__name__)
 
 
 def promo_note(order):
@@ -164,15 +167,15 @@ def issue_ticket(order):
     order.submitted_at = timezone.now()
     order.save()
 
-    send_ticket_email(order)
-
+    # Telegram and email are independent: one failing must not stop the
+    # other, and failures are logged (docker compose logs web) instead of
+    # vanishing silently.
     try:
         notify_moderators(order)
     except Exception:
-        # The buyer already has their ticket; a moderator can still be
-        # notified manually (the order is visible in /admin/) even if
-        # this particular Telegram call failed.
-        pass
+        logger.exception("Telegram: notify_moderators failed for order %s", order.pk)
+
+    send_ticket_email(order)
 
 
 def approve_order(order_id):
@@ -345,7 +348,8 @@ def notify_group_of_purchase(order):
         data={"chat_id": chat_id, "text": text},
         timeout=15,
     )
-    response.raise_for_status()
+    if not response.ok:
+        raise RuntimeError(f"Telegram {response.status_code}: {response.text[:300]}")
 
 
 def mark_order_paid(order, payment_id="", payment_method=None):
@@ -362,14 +366,18 @@ def mark_order_paid(order, payment_id="", payment_method=None):
     order.paid_at = timezone.now()
     order.save()
     create_tickets(order)
-    send_ticket_email(order)
 
+    # Telegram first and never blocking: a broken SMTP setup used to
+    # raise out of send_ticket_email and silently skip this message.
     try:
         notify_group_of_purchase(order)
     except Exception:
-        # The buyer already has their ticket regardless of whether this
-        # Telegram heads-up goes through — never block on it.
-        pass
+        logger.exception("Telegram: notify_group_of_purchase failed for order %s", order.pk)
+
+    try:
+        send_ticket_email(order)
+    except Exception:
+        logger.exception("Email: ticket email failed for order %s", order.pk)
 
 
 def mark_order_failed(order):
