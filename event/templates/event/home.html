@@ -232,6 +232,9 @@
       <p>Ведь обладательницу самого роскошного образа этой ночи ждёт особенный подарок — <strong>VIP-тур в Дубай!</strong></p>
       <p>Так что, дорогая, самое время продумать свой образ. Кто знает, возможно, именно тебя ждёт следующее путешествие?</p>
     </div>
+    {% if EVENT.prize_url %}
+    <a class="ghost-button prize__more reveal" href="{{ EVENT.prize_url }}" target="_blank" rel="noopener noreferrer">Узнать подробнее о туре</a>
+    {% endif %}
     {% if EVENT.prize_terms %}<p class="prize__terms reveal">{{ EVENT.prize_terms|linebreaksbr }}</p>{% endif %}
   </div>
   {% if not EVENT.prize_image %}

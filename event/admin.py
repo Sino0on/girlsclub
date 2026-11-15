@@ -12,7 +12,7 @@ class EventSettingsAdmin(admin.ModelAdmin):
         ("Мероприятие", {"fields": ("title", "title_ru", "event_date", "gathering_time", "program_time", "venue", "venue_map_url")}),
         ("Стоимость", {"fields": ("price_early", "price_late", "price_switch_at", "current_price_display", "seats_limited", "deposit")}),
         ("Ссылки", {"fields": ("buy_url", "instagram_url", "dresscode_url")}),
-        ("VIP-тур", {"fields": ("prize_image", "prize_terms")}),
+        ("VIP-тур", {"fields": ("prize_image", "prize_url", "prize_terms")}),
     )
     readonly_fields = ("current_price_display",)
 

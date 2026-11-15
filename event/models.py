@@ -66,6 +66,12 @@ class EventSettings(models.Model):
         blank=True,
         help_text="Эффектная фотография Дубая. Пока пусто — показывается золотой силуэт города.",
     )
+    prize_url = models.URLField(
+        "Ссылка «Узнать подробнее о туре»",
+        blank=True,
+        default="https://www.instagram.com/nextstation.tour?srtk=MXJpN3h0em1uenl4dg==",
+        help_text="Куда ведёт кнопка в блоке VIP-тура. Пусто — кнопка скрыта.",
+    )
     prize_terms = models.TextField(
         "Условия VIP-тура",
         blank=True,

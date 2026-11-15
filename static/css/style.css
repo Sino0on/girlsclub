@@ -689,6 +689,11 @@ html.gate-seen .gate{ display: none; }
 .prize__text p:first-child{ font-style: italic; font-size: 1.22rem; }
 .prize__text strong{ color: var(--burgundy); }
 .prize__terms{ font-size: .9rem; opacity: .75; }
+/* on the light sunset gradient the gold outline would vanish: go burgundy */
+.prize__more{ margin: .2em 0 1.4em; border-color: var(--burgundy); color: var(--burgundy); background: rgba(255,244,222,.35); }
+.prize__more:hover{ background: var(--burgundy); color: var(--ivory); }
+.prize--photo .prize__more{ border-color: var(--gold); color: var(--gold-hi); background: rgba(28,15,16,.35); }
+.prize--photo .prize__more:hover{ background: var(--gold); color: var(--wine); }
 .prize__sponsor{
   display: inline-flex; align-items: center; gap: .6em;
   margin: -.2em 0 1.3em; padding: .45em 1.1em .45em .9em;
